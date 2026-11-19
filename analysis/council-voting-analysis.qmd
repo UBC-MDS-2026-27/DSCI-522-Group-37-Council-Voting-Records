@@ -1,0 +1,443 @@
+
+---
+title: "Predicting Unanimous Approval in Vancouver City Council Votes"
+format: html
+jupyter: python3
+---
+
+
+## Summary
+
+This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information. The results will be evaluated against a simple baseline classifier. [Add the main findings, their implications, and limitations once the analysis is complete.]
+
+
+## Introduction
+
+Vancouver City Council makes decisions on local issues through council votes. Some decisions receive unanimous support, while others involve disagreement among council members. Looking at these voting patterns can help us understand how council decisions vary across different meeting types and over time.
+
+In this project, we explore whether meeting type and year can help predict when a council vote will be carried unanimously. We want to see whether these two factors provide useful information about voting outcomes.
+
+
+Our research question is: **Can meeting type and year predict whether a Vancouver City Council vote will be carried unanimously?**
+
+
+We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal. As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we will use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
+
+The outcome we want to predict is whether a council vote was carried unanimously. We define this as a binary variable: votes recorded as "Carried Unanimously" are assigned a value of 1, while votes recorded as "Carried" or "Lost" are assigned a value of 0. This allows us to treat the problem as a binary classification task.
+
+The dataset contains the information needed to investigate this question, including the meeting type, voting date, and recorded decision for each vote.
+
+
+## Methods
+
+### Data Collection and Preparation
+
+We obtained the Council Voting Records dataset from the City of Vancouver Open Data Portal through its public API and saved the original CSV file in `data/raw/`.
+
+Following the team's data-cleaning approach, we converted date columns to appropriate datetime formats, checked record identifiers, and removed redundant councillor-vote records when their voting statuses agreed. We retained conflicting records and flagged potential date inconsistencies, unusual voting decisions, and votes with fewer than 11 recorded councillors for further review. We then validated the cleaned data and saved it in Parquet format under `data/processed/`, along with a separate CSV containing flagged records.
+
+These steps help reduce duplicate records while preserving potentially unusual observations rather than automatically excluding them from the analysis.
+
+#### Downloading and Loading the Raw Data
+```{python}
+from pathlib import Path
+import requests
+
+# Download the original council voting records from Vancouver's Open Data API.
+url = (
+    "https://opendata.vancouver.ca/api/explore/v2.1/"
+    "catalog/datasets/council-voting-records/exports/csv"
+)
+
+raw_path = Path("../data/raw/council_voting_records.csv")
+raw_path.parent.mkdir(parents=True, exist_ok=True)
+
+response = requests.get(url, timeout=120)
+response.raise_for_status()
+
+raw_path.write_bytes(response.content)
+
+print(f"Raw data downloaded to {raw_path}")
+```
+
+```{python}
+import pandas as pd
+
+# Load the original council voting records for cleaning.
+df_raw = pd.read_csv(
+    "../data/raw/council_voting_records.csv",
+    sep=";"
+)
+
+print("Raw data shape:", df_raw.shape)
+```
+
+#### Converting Dates and Handling Duplicates
+```{python}
+# Prepare a copy of the raw data for cleaning.
+df_work = df_raw.copy()
+
+# Convert the voting dates and timestamps to datetime types.
+df_work["vote_date"] = pd.to_datetime(
+    df_work["vote_date"],
+    errors="raise"
+)
+
+df_work["vote_start_date_time"] = pd.to_datetime(
+    df_work["vote_start_date_time"],
+    errors="raise",
+    utc=True
+)
+
+print(df_work[["vote_date", "vote_start_date_time"]].dtypes)
+```
+
+```{python}
+# Check that each voting record has a unique identifier.
+assert df_work["vote_detail_id"].is_unique, (
+    "Duplicate vote_detail_id values found."
+)
+
+print("Voting record identifiers are unique.")
+
+
+# Identify repeated records for the same councillor and council vote.
+status_counts = (
+    df_work.groupby(["vote_number", "council_member"])["vote"]
+    .transform("nunique")
+)
+
+# Flag records where the same councillor has conflicting voting statuses.
+df_work["conflicting_vote_flag"] = status_counts > 1
+
+# Remove redundant records only when voting statuses agree.
+redundant = (
+    ~df_work["conflicting_vote_flag"]
+    & df_work.duplicated(
+        subset=["vote_number", "council_member"],
+        keep="first"
+    )
+)
+
+print("Redundant records removed:", redundant.sum())
+
+df_work = df_work.loc[~redundant].copy()
+
+print("Shape after duplicate handling:", df_work.shape)
+```
+
+#### Flagging Potential Data Quality Issues
+```{python}
+# Convert UTC timestamps to Vancouver local dates.
+local_dates = (
+    df_work["vote_start_date_time"]
+    .dt.tz_convert("America/Vancouver")
+    .dt.date
+)
+
+# Flag records where the local timestamp date differs from the recorded vote date.
+df_work["date_mismatch_flag"] = (
+    local_dates != df_work["vote_date"].dt.date
+)
+
+print("Date mismatch records:", df_work["date_mismatch_flag"].sum())
+
+
+# Count voting statuses for each council vote.
+vote_counts = (
+    df_work.groupby(["vote_number", "vote"])
+    .size()
+    .unstack(fill_value=0)
+)
+
+# Ensure both voting categories are represented.
+vote_counts = vote_counts.reindex(
+    columns=["In Favour", "In Opposition"],
+    fill_value=0
+)
+
+# Get the recorded decision for each council vote.
+decisions = df_work.groupby("vote_number")["decision"].first()
+
+# Flag unanimous decisions with opposition votes.
+unanimous_conflict = (
+    (decisions == "Carried Unanimously")
+    & (vote_counts["In Opposition"] > 0)
+)
+
+# Flag lost decisions with votes in favour but no opposition.
+lost_conflict = (
+    (decisions == "Lost")
+    & (vote_counts["In Favour"] > 0)
+    & (vote_counts["In Opposition"] == 0)
+)
+
+# Identify and flag potentially inconsistent decisions.
+suspicious_votes = decisions.index[
+    unanimous_conflict | lost_conflict
+]
+
+df_work["decision_anomaly_flag"] = (
+    df_work["vote_number"].isin(suspicious_votes)
+)
+
+print("Potentially inconsistent council decisions:", len(suspicious_votes))
+
+# Count the number of distinct councillors recorded for each vote.
+unique_members = (
+    df_work.groupby("vote_number")["council_member"]
+    .transform("nunique")
+)
+
+# Flag votes with fewer than 11 councillors recorded.
+df_work["low_coverage_flag"] = unique_members < 11
+
+print(
+    "Votes with fewer than 11 members:",
+    df_work.loc[df_work["low_coverage_flag"], "vote_number"].nunique()
+)
+```
+
+#### Validating and Saving the Cleaned Data
+```{python}
+
+# Verify that voting record identifiers remain unique.
+assert df_work["vote_detail_id"].is_unique, (
+    "Duplicate vote detail IDs remain."
+)
+
+# Verify that date conversions produced no missing values.
+assert df_work["vote_date"].notna().all(), (
+    "Missing or invalid vote dates found."
+)
+
+assert df_work["vote_start_date_time"].notna().all(), (
+    "Missing or invalid timestamps found."
+)
+
+# Any remaining repeated councillor-vote records
+# must be associated with flagged conflicts.
+remaining_duplicates = df_work.duplicated(
+    subset=["vote_number", "council_member"],
+    keep=False
+)
+
+assert df_work.loc[
+    remaining_duplicates, "conflicting_vote_flag"
+].all(), (
+    "Unexpected repeated councillor-vote records remain."
+)
+
+print("All cleaning validation checks passed.")
+
+# Identify records requiring further review.
+flag_columns = [
+    "conflicting_vote_flag",
+    "date_mismatch_flag",
+    "decision_anomaly_flag",
+    "low_coverage_flag"
+]
+
+review_records = df_work.loc[
+    df_work[flag_columns].any(axis=1)
+].copy()
+
+# Save the cleaned dataset and records requiring review.
+processed_dir = Path("../data/processed")
+processed_dir.mkdir(parents=True, exist_ok=True)
+
+df_work.to_parquet(
+    processed_dir / "council_voting_clean.parquet",
+    index=False
+)
+
+review_records.to_csv(
+    processed_dir / "votes_to_review.csv",
+    index=False
+)
+
+print("Cleaned records saved:", len(df_work))
+print("Records flagged for review:", len(review_records))
+
+
+```
+
+#### Constructing the Vote-Level Dataset
+```{python}
+import pandas as pd
+
+df_clean = pd.read_parquet(
+    "../data/processed/council_voting_clean.parquet"
+)
+
+print("Cleaned dataset shape:", df_clean.shape)
+```
+
+```{python}
+# Check the decision categories before defining the binary target.
+print("Decision categories:")
+print(df_clean["decision"].unique())
+
+# Check whether vote_number identifies a unique council vote.
+meeting_counts = (
+    df_clean.groupby("vote_number")["meeting_id"].nunique()
+)
+
+decision_counts = (
+    df_clean.groupby("vote_number")["decision"].nunique()
+)
+
+print(
+    "Vote numbers spanning multiple meetings:",
+    (meeting_counts > 1).sum()
+)
+
+print(
+    "Vote numbers with conflicting decisions:",
+    (decision_counts > 1).sum()
+)
+
+print(
+    "Missing vote numbers:",
+    df_clean["vote_number"].isna().sum()
+)
+```
+
+Because the original dataset contains individual councillors' voting records, we grouped the cleaned records by council vote to create one observation per decision. We retained the meeting type, voting date, and recorded decision, and extracted the calendar year from the voting date. We then defined a binary outcome: 1 for votes recorded as "Carried Unanimously" and 0 for votes recorded as "Carried" or "Lost".
+
+We also retained a flag identifying potentially inconsistent decisions. These observations remain in the dataset for now rather than being automatically excluded.
+
+```{python}
+# Check that meeting type and date are consistent within each vote.
+consistency = (
+    df_clean.groupby("vote_number")[["meeting_type", "vote_date"]]
+    .nunique(dropna=False)
+)
+
+assert consistency.eq(1).all().all(), (
+    "Inconsistent meeting types or dates found within a council vote."
+)
+
+# Construct one observation per council vote.
+df_votes = (
+    df_clean.groupby("vote_number", as_index=False)
+    .agg(
+        meeting_type=("meeting_type", "first"),
+        vote_date=("vote_date", "first"),
+        decision=("decision", "first"),
+        decision_anomaly_flag=("decision_anomaly_flag", "any")
+    )
+)
+
+# Extract the calendar year as a predictor.
+df_votes["year"] = df_votes["vote_date"].dt.year
+
+# Ensure all decisions belong to the expected categories.
+valid_decisions = {"Carried Unanimously", "Carried", "Lost"}
+
+assert df_votes["decision"].isin(valid_decisions).all(), (
+    "Unexpected or missing decision categories found."
+)
+
+# Create the binary target variable.
+df_votes["is_unanimous"] = (
+    df_votes["decision"] == "Carried Unanimously"
+).astype(int)
+
+# Save the vote-level dataset used for analysis.
+vote_level_path = Path(
+    "../data/processed/council_voting_vote_level.parquet"
+)
+
+df_votes.to_parquet(vote_level_path, index=False)
+
+print("Vote-level dataset saved to:", vote_level_path)
+
+print("Vote-level dataset shape:", df_votes.shape)
+print("One row per vote:", df_votes["vote_number"].is_unique)
+```
+
+
+### Training and Test Split
+
+We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions will use only the training set, leaving the test set aside for final evaluation.
+
+This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.
+
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+# Split at the council-vote level, not the individual-councillor level.
+train_votes, test_votes = train_test_split(
+    df_votes,
+    test_size=0.20,
+    random_state=123,
+    stratify=df_votes["is_unanimous"]
+)
+
+# Verify the split.
+print("Training observations:", len(train_votes))
+print("Test observations:", len(test_votes))
+
+# Make sure no council vote appears in both sets.
+shared_votes = set(train_votes["vote_number"]) & set(test_votes["vote_number"])
+
+assert len(shared_votes) == 0, "Train/test overlap detected."
+
+print("Shared council votes:", len(shared_votes))
+```
+
+
+### Exploratory Data Analysis
+
+We first examine the distribution of unanimous and non-unanimous decisions in the training data to understand the balance of our target variable.
+
+```{python}
+# Summarize the binary target using training data only.
+target_counts = train_votes["is_unanimous"].value_counts()
+
+print("Training vote counts:")
+print(target_counts.rename(index={0: "Not unanimous", 1: "Unanimous"}))
+
+print(
+    "Proportion unanimous:",
+    round(train_votes["is_unanimous"].mean(), 3)
+)
+```
+
+
+```{python}
+# Summarize unanimity by meeting type using training data only.
+meeting_summary = (
+    train_votes.groupby("meeting_type", dropna=False)["is_unanimous"]
+    .agg(
+        number_of_votes="size",
+        unanimous_rate="mean"
+    )
+    .sort_values("number_of_votes", ascending=False)
+)
+
+print("Unanimity by meeting type:")
+print(meeting_summary.round(3))
+```
+
+In the training data, 70.9% of council votes were carried unanimously, indicating an imbalance between the two outcome classes. Unanimity rates also varied across meeting types. For example, Regular Council meetings had a higher unanimity rate (76.8%) than Policy & Strategic Priorities meetings (62.8%) and Special Council meetings (57.6%). Some meeting types had very few observations, so their rates should be interpreted cautiously. These descriptive differences suggest that meeting type may provide useful predictive information.
+
+
+```{python}
+# Summarize unanimity by year using training data only.
+year_summary = (
+    train_votes.groupby("year")["is_unanimous"]
+    .agg(
+        number_of_votes="size",
+        unanimous_rate="mean"
+    )
+    .sort_index()
+)
+
+print("Unanimity by year:")
+print(year_summary.round(3))
+```
+
+Unanimity rates also varied across years in the training data. Between 2019 and 2022, approximately 62.5%–64.0% of council votes were unanimous, compared with 81.5% in 2023 and 85.4% in 2024. The rate subsequently declined to 79.0% in 2025 and 68.0% in 2026, although the 2026 records cover only part of the year. These variations suggest that year may provide useful predictive information, but the descriptive results alone do not explain why voting patterns changed.
