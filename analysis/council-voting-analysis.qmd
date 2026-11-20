@@ -519,26 +519,117 @@ cv_results = pd.DataFrame(cv_rows).round(3)
 
 ## **Results**
 
+```{python}
+cv_results
+```
+
+*Table 1. Five-fold cross-validation performance on the training set.*
+
 ### Cross-Validation & Test Performance Summary
+
+In 5-fold cross-validation (Table 1), the majority-class dummy baseline achieved an accuracy of 0.709, a balanced accuracy of 0.500, and a ROC-AUC of 0.500. Both logistic regression models improved ROC-AUC to 0.636–0.637, showing that meeting type and year contain predictive signal. However, the unweighted logistic regression model achieved a balanced accuracy of only 0.500 because it rarely predicted the minority non-unanimous class. Using balanced class weights increased cross-validation balanced accuracy to 0.598 (with an accuracy of 0.579 and ROC-AUC of 0.637), so we selected the balanced logistic regression model for final evaluation.
+
+```{python}
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    roc_auc_score,
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+)
+
+# Fit the selected model on the full training set and evaluate once on X_test
+best_model = models["Logistic Regression (Balanced)"]
+best_model.fit(X_train, y_train)
+
+y_pred = best_model.predict(X_test)
+y_prob = best_model.predict_proba(X_test)[:, 1]
+
+test_summary = pd.DataFrame([{
+    "Test Accuracy": accuracy_score(y_test, y_pred),
+    "Test Balanced Accuracy": balanced_accuracy_score(y_test, y_pred),
+    "Test ROC-AUC": roc_auc_score(y_test, y_prob),
+}]).round(3)
+
+test_summary
+```
+
+*Table 2. Final balanced logistic regression performance on the held-out test set.*
 
 ### Model Diagnostic Plot(s)
 
+```{python}
+fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+
+RocCurveDisplay.from_estimator(best_model, X_test, y_test, ax=axes[0])
+axes[0].plot([0, 1], [0, 1], linestyle="--", color="gray", label="Random (AUC = 0.50)")
+axes[0].set_title("ROC Curve (Test Set)")
+axes[0].legend()
+
+ConfusionMatrixDisplay.from_estimator(
+    best_model, X_test, y_test,
+    display_labels=["Not Unanimous", "Unanimous"],
+    ax=axes[1]
+)
+axes[1].set_title("Confusion Matrix (Test Set)")
+
+plt.tight_layout()
+plt.show()
+```
+
+*Figure 2. Receiver operating characteristic curve (left) and confusion matrix (right) for the balanced logistic regression model on the test set.*
+
+On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.
+
 ### Feature Effects / Top Coefficients
 
+```{python}
+# Extract the largest positive and negative log-odds coefficients
+ohe = best_model.named_steps["columntransformer"].named_transformers_["onehotencoder"]
+feature_names = ohe.get_feature_names_out(features)
+coefficients = best_model.named_steps["logisticregression"].coef_[0]
+
+coef_summary = (
+    pd.DataFrame({"Feature": feature_names, "Coefficient": coefficients})
+    .sort_values("Coefficient", ascending=False)
+)
+
+top_coefs = pd.concat([coef_summary.head(5), coef_summary.tail(5)]).round(3)
+top_coefs
+```
+
+*Table 3. Largest positive and negative log-odds coefficients from the balanced logistic regression model.*
+
+Table 3 highlights the strongest predictors of unanimity in the fitted model. Votes in 2024 (coefficient 0.837), 2023 (0.467), and 2025 (0.379), as well as Auditor General Committee (1.839) and Courts of Revision (1.163) meetings, were positively associated with unanimous approval. Conversely, Special Council (-0.894), Policy & Strategic Priorities (-0.726), and City Finance & Services (-0.653) meetings, along with votes in 2020 (-0.449) and 2021 (-0.472), had negative coefficients, indicating lower odds of unanimity.
+
 ### Accuracy Check
+
+All reported values in the narrative above were verified directly against the cross-validation table (Table 1), test evaluation table (Table 2), confusion matrix (Figure 2), and coefficient summary (Table 3). Overall accuracy is lower for the balanced model (0.573) than for the dummy baseline (0.709) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601.
 
 ## **Discussion**
 
 ### Summary & Link to Question
 
+Meeting type and calendar year provide modest predictive signal for whether a Vancouver City Council vote is carried unanimously. On the held-out test set, balanced logistic regression achieved a ROC-AUC of 0.650 and a balanced accuracy of 0.601, outperforming the dummy baseline (0.500 on both metrics). While overall accuracy dropped from 0.709 to 0.573, the balanced model identified 297 non-unanimous votes instead of predicting unanimous approval for every decision.
+
 ### Real-World / Domain Context
+
+Different council forums serve distinct roles: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates. By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients. Higher unanimity in 2023–2024 compared with 2020–2021 likely reflects shifts in council composition after the 2022 municipal election.
 
 ### Expectations
 
+These results match our expectations. Because meeting type and year capture institutional context rather than the substance of each motion, we anticipated moderate class separation (0.650 ROC-AUC) rather than high predictive accuracy.
+
 ### Assumptions & Limitations
+
+Key limitations include relying on only two predictors without motion topic or sponsor data, using a random 80/20 split that evaluates historical interpolation rather than future forecasting (with 2026 covering only part of the year), and retaining flagged anomalous or low-coverage records that may add label noise. Additionally, one-hot encoding without interaction terms assumes meeting type and year act additively.
 
 ### Impact
 
+For civic researchers and transparency advocates, this baseline quantifies how unanimity varies across council forums and years. However, its modest accuracy means metadata-only models should inform exploratory analysis rather than any automated decision-making.
+
 ### Future Question
+
+Future work could incorporate motion titles using natural language processing, test temporal generalization across council terms, or model individual councillor voting histories to study coalition and dissent patterns.
 
 ## **References**
