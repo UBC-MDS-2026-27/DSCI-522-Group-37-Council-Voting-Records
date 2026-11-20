@@ -1,0 +1,16 @@
+#macOS system files
+.DS_Store
+
+#Python virtual environments
+.venv/
+
+#R temporary files
+.Rhistory
+.RData
+
+#Quarto generated files
+*_cache/
+*_files/
+
+#Editor settings
+.vscode/
