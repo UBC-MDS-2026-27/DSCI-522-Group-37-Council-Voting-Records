@@ -1,47 +1,55 @@
-
 ---
 title: "Predicting Unanimous Approval in Vancouver City Council Votes"
 format: html
 jupyter: python3
 ---
 
-
 ## Summary
 
-This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information. The results will be evaluated against a simple baseline classifier. [Add the main findings, their implications, and limitations once the analysis is complete.]
-
+This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information and evaluate our model against a simple majority-class baseline classifier. On the held-out test set, a balanced logistic regression model achieved an Area Under the Receiver Operating Characteristic Curve (ROC-AUC) of 0.650 and a balanced accuracy of 0.601, outperforming the majority-class dummy benchmark on the same test set (0.500 on both metrics) despite lower overall accuracy (0.573 versus 0.709). These findings show that council meeting forum and year carry modest predictive signal, though relying solely on institutional metadata without motion text limits predictive performance and reflects historical patterns rather than future forecasting.
 
 ## Introduction
 
-Vancouver City Council makes decisions on local issues through council votes. Some decisions receive unanimous support, while others involve disagreement among council members. Looking at these voting patterns can help us understand how council decisions vary across different meeting types and over time.
-
-In this project, we explore whether meeting type and year can help predict when a council vote will be carried unanimously. We want to see whether these two factors provide useful information about voting outcomes.
-
+Vancouver City Council shapes local housing, budgeting, and transit policy through recorded council votes. Understanding when decisions pass unanimously versus when council members divide matters for civic transparency, as municipal councils often reach broad consensus on routine items while splitting on contested policy debates (Lucas, 2023). Examining how unanimity varies across meeting forums and over time helps clarify whether structural context alone signals which council decisions are likely to draw dissent.
 
 Our research question is: **Can meeting type and year predict whether a Vancouver City Council vote will be carried unanimously?**
 
-
-We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal. As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we will use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
+We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal (City of Vancouver, 2026). As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
 
 The outcome we want to predict is whether a council vote was carried unanimously. We define this as a binary variable: votes recorded as "Carried Unanimously" are assigned a value of 1, while votes recorded as "Carried" or "Lost" are assigned a value of 0. This allows us to treat the problem as a binary classification task.
 
 The dataset contains the information needed to investigate this question, including the meeting type, voting date, and recorded decision for each vote.
 
-
 ## Methods
 
 ### Data Collection and Preparation
 
-We obtained the Council Voting Records dataset from the City of Vancouver Open Data Portal through its public API and saved the original CSV file in `data/raw/`.
+We obtained the Council Voting Records dataset from the City of Vancouver Open Data Portal through its public Application Programming Interface (API) and saved the original comma-separated values (CSV) file in `data/raw/`.
 
 Following the team's data-cleaning approach, we converted date columns to appropriate datetime formats, checked record identifiers, and removed redundant councillor-vote records when their voting statuses agreed. We retained conflicting records and flagged potential date inconsistencies, unusual voting decisions, and votes with fewer than 11 recorded councillors for further review. We then validated the cleaned data and saved it in Parquet format under `data/processed/`, along with a separate CSV containing flagged records.
 
 These steps help reduce duplicate records while preserving potentially unusual observations rather than automatically excluding them from the analysis.
 
 #### Downloading and Loading the Raw Data
+
 ```{python}
 from pathlib import Path
+import matplotlib.pyplot as plt
+import pandas as pd
 import requests
+from sklearn.compose import make_column_transformer
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+    accuracy_score,
+    balanced_accuracy_score,
+    roc_auc_score,
+)
+from sklearn.model_selection import cross_validate, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 # Download the original council voting records from Vancouver's Open Data API.
 url = (
@@ -61,8 +69,6 @@ print(f"Raw data downloaded to {raw_path}")
 ```
 
 ```{python}
-import pandas as pd
-
 # Load the original council voting records for cleaning.
 df_raw = pd.read_csv(
     "../data/raw/council_voting_records.csv",
@@ -73,6 +79,7 @@ print("Raw data shape:", df_raw.shape)
 ```
 
 #### Converting Dates and Handling Duplicates
+
 ```{python}
 # Prepare a copy of the raw data for cleaning.
 df_work = df_raw.copy()
@@ -127,6 +134,7 @@ print("Shape after duplicate handling:", df_work.shape)
 ```
 
 #### Flagging Potential Data Quality Issues
+
 ```{python}
 # Convert UTC timestamps to Vancouver local dates.
 local_dates = (
@@ -199,6 +207,7 @@ print(
 ```
 
 #### Validating and Saving the Cleaned Data
+
 ```{python}
 
 # Verify that voting record identifiers remain unique.
@@ -263,9 +272,8 @@ print("Records flagged for review:", len(review_records))
 ```
 
 #### Constructing the Vote-Level Dataset
-```{python}
-import pandas as pd
 
+```{python}
 df_clean = pd.read_parquet(
     "../data/processed/council_voting_clean.parquet"
 )
@@ -305,7 +313,7 @@ print(
 
 Because the original dataset contains individual councillors' voting records, we grouped the cleaned records by council vote to create one observation per decision. We retained the meeting type, voting date, and recorded decision, and extracted the calendar year from the voting date. We then defined a binary outcome: 1 for votes recorded as "Carried Unanimously" and 0 for votes recorded as "Carried" or "Lost".
 
-We also retained a flag identifying potentially inconsistent decisions. These observations remain in the dataset for now rather than being automatically excluded.
+We also retained a flag identifying potentially inconsistent decisions. These observations were retained in the dataset rather than automatically excluded.
 
 ```{python}
 # Check that meeting type and date are consistent within each vote.
@@ -357,17 +365,13 @@ print("Vote-level dataset shape:", df_votes.shape)
 print("One row per vote:", df_votes["vote_number"].is_unique)
 ```
 
-
 ### Training and Test Split
 
-We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions will use only the training set, leaving the test set aside for final evaluation.
+We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions used only the training set, leaving the test set aside for final evaluation.
 
 This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.
 
-
 ```{python}
-from sklearn.model_selection import train_test_split
-
 # Split at the council-vote level, not the individual-councillor level.
 train_votes, test_votes = train_test_split(
     df_votes,
@@ -388,7 +392,6 @@ assert len(shared_votes) == 0, "Train/test overlap detected."
 print("Shared council votes:", len(shared_votes))
 ```
 
-
 ### Exploratory Data Analysis
 
 We first examine the distribution of unanimous and non-unanimous decisions in the training data to understand the balance of our target variable.
@@ -405,7 +408,6 @@ print(
     round(train_votes["is_unanimous"].mean(), 3)
 )
 ```
-
 
 ```{python}
 # Summarize unanimity by meeting type using training data only.
@@ -424,7 +426,6 @@ print(meeting_summary.round(3))
 
 In the training data, 70.9% of council votes were carried unanimously, indicating an imbalance between the two outcome classes. Unanimity rates also varied across meeting types. For example, Regular Council meetings had a higher unanimity rate (76.8%) than Policy & Strategic Priorities meetings (62.8%) and Special Council meetings (57.6%). Some meeting types had very few observations, so their rates should be interpreted cautiously. These descriptive differences suggest that meeting type may provide useful predictive information.
 
-
 ```{python}
 # Summarize unanimity by year using training data only.
 year_summary = (
@@ -441,3 +442,232 @@ print(year_summary.round(3))
 ```
 
 Unanimity rates also varied across years in the training data. Between 2019 and 2022, approximately 62.5%–64.0% of council votes were unanimous, compared with 81.5% in 2023 and 85.4% in 2024. The rate subsequently declined to 79.0% in 2025 and 68.0% in 2026, although the 2026 records cover only part of the year. These variations suggest that year may provide useful predictive information, but the descriptive results alone do not explain why voting patterns changed.
+
+### Training Data Visualization
+
+To visualize these training-set patterns before modeling, Figure 1 plots unanimity rates across calendar years and across the most frequent meeting types (City of Vancouver, 2026).
+
+```{python}
+fig, axes = plt.subplots(
+    1, 2, figsize=(6.8, 3.5), gridspec_kw={"width_ratios": [1, 1.15]}, constrained_layout=True
+)
+
+# Left plot: unanimity rate by year (using year_summary from EDA)
+overall_rate = train_votes["is_unanimous"].mean() * 100
+axes[0].plot(
+    year_summary.index, year_summary["unanimous_rate"] * 100,
+    marker="o", markersize=4.5, linewidth=1.8, color="#2b6cb0"
+)
+axes[0].axhline(
+    overall_rate, linestyle="--", linewidth=1.2, color="#64748b",
+    label=f"Training Mean ({overall_rate:.1f}%)"
+)
+axes[0].set_title("By Calendar Year", fontsize=10.5)
+axes[0].set_xlabel("Calendar Year", fontsize=9.5)
+axes[0].set_ylabel("Unanimous Votes (%)", fontsize=9.5)
+axes[0].set_xticks([2016, 2018, 2020, 2022, 2024, 2026])
+axes[0].set_ylim(0, 100)
+axes[0].tick_params(labelsize=8.5)
+axes[0].grid(axis="y", linestyle=":", alpha=0.35)
+axes[0].spines["top"].set_visible(False)
+axes[0].spines["right"].set_visible(False)
+axes[0].legend(frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.24))
+
+# Right plot: unanimity rate by meeting type (n >= 30)
+top_meetings = meeting_summary[meeting_summary["number_of_votes"] >= 30].sort_values("unanimous_rate")
+bars = axes[1].barh(top_meetings.index, top_meetings["unanimous_rate"] * 100, color="#2b6cb0")
+for bar in bars:
+    val = bar.get_width()
+    axes[1].text(val + 1.5, bar.get_y() + bar.get_height() / 2, f"{val:.1f}%", va="center", fontsize=8)
+axes[1].set_title("By Meeting Type (n ≥ 30)", fontsize=10.5)
+axes[1].set_xlabel("Unanimous Votes (%)", fontsize=9.5)
+axes[1].set_xlim(0, 105)
+axes[1].tick_params(labelsize=8.5)
+axes[1].grid(axis="x", linestyle=":", alpha=0.35)
+axes[1].spines["top"].set_visible(False)
+axes[1].spines["right"].set_visible(False)
+
+plt.show()
+```
+
+*Figure 1. Unanimity rate by calendar year (left) and by meeting type for meeting types with at least 30 votes (right) in the training set.*
+
+As shown in Figure 1, unanimity rose sharply above the 70.9% training mean in 2023 and 2024 after remaining near 63% from 2019 to 2022, while Regular Council meetings consistently recorded higher unanimity than Special Council or Policy and Strategic Priorities meetings.
+
+### Model Selection, Metric Justification, and Classification Analysis
+
+To predict whether a council vote was carried unanimously, we compared a majority-class dummy classifier baseline against logistic regression with default and balanced class weights. Logistic regression fits our binary outcome (unanimous versus non-unanimous) and estimates interpretable probabilities for each category, building on supervised learning approaches applied to legislative roll-call data (Bonica, 2018). Because unanimity in the training data varied non-linearly across years (62.5%–64.0% in 2019–2022 versus 85.4% in 2024) and meeting types (76.8% in Regular Council versus 57.6% in Special Council), we one-hot encoded both predictors inside a pipeline so preprocessing stayed within each five-fold cross-validation split.
+
+We evaluated models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes were unanimous, a dummy classifier achieved roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.
+
+```{python}
+# Separate features and target for training and test sets
+features = ["meeting_type", "year"]
+target = "is_unanimous"
+
+X_train, y_train = train_votes[features], train_votes[target]
+X_test, y_test = test_votes[features], test_votes[target]
+
+# One-hot encode both categorical predictors
+preprocessor = make_column_transformer(
+    (OneHotEncoder(handle_unknown="ignore"), features)
+)
+
+# Define models to compare with five-fold cross-validation
+models = {
+    "Dummy (Most Frequent)": DummyClassifier(strategy="most_frequent"),
+    "Logistic Regression": make_pipeline(
+        preprocessor, LogisticRegression(max_iter=1000, random_state=123)
+    ),
+    "Logistic Regression (Balanced)": make_pipeline(
+        preprocessor, LogisticRegression(max_iter=1000, class_weight="balanced", random_state=123)
+    ),
+}
+
+scoring = ["accuracy", "balanced_accuracy", "roc_auc"]
+cv_rows = []
+
+for name, model in models.items():
+    scores = cross_validate(model, X_train, y_train, cv=5, scoring=scoring)
+    cv_rows.append({
+        "Model": name,
+        "CV Accuracy": scores["test_accuracy"].mean(),
+        "CV Balanced Accuracy": scores["test_balanced_accuracy"].mean(),
+        "CV ROC-AUC": scores["test_roc_auc"].mean(),
+    })
+
+cv_results = pd.DataFrame(cv_rows).round(3)
+```
+
+## Results
+
+### Cross-Validation and Test Performance Summary
+
+```{python}
+cv_results
+```
+
+*Table 1. Five-fold cross-validation performance on the training set.*
+
+In five-fold cross-validation (Table 1), the majority-class dummy baseline achieved an accuracy of 0.709, a balanced accuracy of 0.500, and a ROC-AUC of 0.500. Both logistic regression models improved ROC-AUC to 0.636–0.637, showing that meeting type and year contain predictive signal. However, the unweighted logistic regression model achieved a balanced accuracy of only 0.500 because it rarely predicted the minority non-unanimous class. Using balanced class weights increased cross-validation balanced accuracy to 0.598 (with an accuracy of 0.579 and ROC-AUC of 0.637), so we selected the balanced logistic regression model for final evaluation.
+
+```{python}
+# Fit the selected model and dummy benchmark on the full training set, then evaluate once on X_test
+dummy_model = models["Dummy (Most Frequent)"]
+dummy_model.fit(X_train, y_train)
+dummy_pred = dummy_model.predict(X_test)
+dummy_prob = dummy_model.predict_proba(X_test)[:, 1]
+
+best_model = models["Logistic Regression (Balanced)"]
+best_model.fit(X_train, y_train)
+y_pred = best_model.predict(X_test)
+y_prob = best_model.predict_proba(X_test)[:, 1]
+
+test_summary = pd.DataFrame([
+    {
+        "Model": "Dummy (Most Frequent)",
+        "Test Accuracy": accuracy_score(y_test, dummy_pred),
+        "Test Balanced Accuracy": balanced_accuracy_score(y_test, dummy_pred),
+        "Test ROC-AUC": roc_auc_score(y_test, dummy_prob),
+    },
+    {
+        "Model": "Logistic Regression (Balanced)",
+        "Test Accuracy": accuracy_score(y_test, y_pred),
+        "Test Balanced Accuracy": balanced_accuracy_score(y_test, y_pred),
+        "Test ROC-AUC": roc_auc_score(y_test, y_prob),
+    },
+]).round(3)
+
+test_summary
+```
+
+*Table 2. Held-out test-set performance for the majority-class dummy benchmark and the selected balanced logistic regression model.*
+
+### Model Diagnostic Plots
+
+```{python}
+fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.5), constrained_layout=True)
+
+roc_disp = RocCurveDisplay.from_estimator(
+    best_model, X_test, y_test,
+    name="Balanced Logistic Reg.",
+    ax=axes[0]
+)
+roc_disp.line_.set_color("#2b6cb0")
+axes[0].plot([0, 1], [0, 1], linestyle="--", linewidth=1.2, color="#64748b", label="Random (AUC = 0.50)")
+axes[0].set_title("ROC Curve (Test Set)", fontsize=10.5)
+axes[0].set_xlabel("False Positive Rate", fontsize=9.5)
+axes[0].set_ylabel("True Positive Rate", fontsize=9.5)
+axes[0].tick_params(labelsize=8.5)
+axes[0].grid(linestyle=":", alpha=0.35)
+axes[0].spines["top"].set_visible(False)
+axes[0].spines["right"].set_visible(False)
+axes[0].legend(frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.24))
+
+ConfusionMatrixDisplay.from_estimator(
+    best_model, X_test, y_test,
+    display_labels=["Not Unanimous", "Unanimous"],
+    cmap="Blues",
+    colorbar=False,
+    ax=axes[1]
+)
+axes[1].set_title("Confusion Matrix (Test Set)", fontsize=10.5)
+axes[1].set_xlabel("Predicted Outcome", fontsize=9.5)
+axes[1].set_ylabel("Actual Outcome", fontsize=9.5)
+axes[1].tick_params(labelsize=8.5)
+
+plt.show()
+```
+
+*Figure 2. Receiver operating characteristic curve (left) and confusion matrix (right) for the balanced logistic regression model on the test set.*
+
+On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. Overall accuracy is lower than the test-set dummy benchmark (0.709, Table 2) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601 on the same test set. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.
+
+### Feature Effects and Top Coefficients
+
+```{python}
+# Extract the largest positive and negative log-odds coefficients
+ohe = best_model.named_steps["columntransformer"].named_transformers_["onehotencoder"]
+raw_names = ohe.get_feature_names_out(features)
+clean_names = [
+    name.replace("meeting_type_", "Meeting Type: ").replace("year_", "Year: ")
+    for name in raw_names
+]
+coefficients = best_model.named_steps["logisticregression"].coef_[0]
+
+coef_summary = (
+    pd.DataFrame({"Feature": clean_names, "Coefficient": coefficients})
+    .sort_values("Coefficient", ascending=False)
+)
+
+top_coefs = pd.concat([coef_summary.head(5), coef_summary.tail(5)]).round(3)
+top_coefs
+```
+
+*Table 3. Largest positive and negative log-odds coefficients from the balanced logistic regression model.*
+
+Table 3 highlights the strongest predictors of unanimity in the fitted model. Votes in 2024 (coefficient 0.837), 2023 (0.467), and 2025 (0.379), as well as Auditor General Committee (1.839) and Courts of Revision (1.163) meetings, were positively associated with unanimous approval. Conversely, Special Council (-0.894), Policy and Strategic Priorities (-0.726), and City Finance and Services (-0.653) meetings, along with votes in 2020 (-0.449) and 2021 (-0.472), had negative coefficients, indicating lower odds of unanimity.
+
+## Discussion
+
+Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601—well above the 0.500 test-set dummy benchmark (Table 2; Figure 2)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw test accuracy from 0.709 to 0.573.
+
+Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates (Figure 1; Table 3). By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients (Table 3). This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas & Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 (Figure 1; Table 3) likely reflects shifts in council composition after the 2022 municipal election.
+
+These results match our expectations. Because meeting type and year capture institutional context rather than the substance of each motion, we anticipated moderate class separation (0.650 ROC-AUC) rather than high predictive accuracy.
+
+Key limitations include relying on only two predictors without motion topic or sponsor data, using a random 80/20 split that evaluates historical interpolation rather than future forecasting (with 2026 covering only part of the year), and retaining flagged anomalous or low-coverage records that may add label noise. Additionally, one-hot encoding without interaction terms assumes meeting type and year act additively.
+
+For civic researchers and transparency advocates, this baseline quantifies how unanimity varies across council forums and years. However, the misclassifications shown in the confusion matrix (Figure 2) underscore that metadata-only models should inform exploratory analysis rather than any automated decision-making.
+
+Future work could incorporate motion titles using natural language processing, test temporal generalization across council terms, or model individual councillor voting histories and ideological alignment to study coalition and dissent patterns (Bonica, 2018; Lucas & Armstrong, 2021).
+
+## References
+
+1.  City of Vancouver. (2026). *Council Voting Records* \[Dataset\]. City of Vancouver Open Data Portal. <https://opendata.vancouver.ca/explore/dataset/council-voting-records/>
+
+2.  Lucas, J., & Armstrong, D. A., II. (2021). Policy ideology and local ideological representation in Canada. *Canadian Journal of Political Science*, 54(4). <https://doi.org/10.1017/S0008423921000652>
+
+3.  Lucas, J. (2023). The ideological structure of municipal non-ideology. *Urban Affairs Review*, 59(1), 275–293. <https://doi.org/10.1177/10780874211038321>
+
+4.  Bonica, A. (2018). Inferring roll-call scores from campaign contributions using supervised machine learning. *American Journal of Political Science*, 62(4), 830–848. <https://doi.org/10.1111/ajps.12376>
