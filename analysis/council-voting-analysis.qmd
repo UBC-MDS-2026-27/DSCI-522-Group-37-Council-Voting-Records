@@ -435,3 +435,33 @@ print(year_summary.round(3))
 ```
 
 Unanimity rates also varied across years in the training data. Between 2019 and 2022, approximately 62.5%–64.0% of council votes were unanimous, compared with 81.5% in 2023 and 85.4% in 2024. The rate subsequently declined to 79.0% in 2025 and 68.0% in 2026, although the 2026 records cover only part of the year. These variations suggest that year may provide useful predictive information, but the descriptive results alone do not explain why voting patterns changed.
+
+### **Training Data Visualization**
+
+### **Model Selection, Metric Justification & Classification Analysis**
+
+## **Results**
+
+### Cross-Validation & Test Performance Summary
+
+### Model Diagnostic Plot(s)
+
+### Feature Effects / Top Coefficients
+
+### Accuracy Check
+
+## **Discussion**
+
+### Summary & Link to Question
+
+### Real-World / Domain Context
+
+### Expectations
+
+### Assumptions & Limitations
+
+### Impact
+
+### Future Question
+
+## **References**
