@@ -1,15 +1,12 @@
-
 ---
 title: "Predicting Unanimous Approval in Vancouver City Council Votes"
 format: html
 jupyter: python3
 ---
 
-
 ## Summary
 
-This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information. The results will be evaluated against a simple baseline classifier. [Add the main findings, their implications, and limitations once the analysis is complete.]
-
+This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information. The results will be evaluated against a simple baseline classifier. \[Add the main findings, their implications, and limitations once the analysis is complete.\]
 
 ## Introduction
 
@@ -17,16 +14,13 @@ Vancouver City Council makes decisions on local issues through council votes. So
 
 In this project, we explore whether meeting type and year can help predict when a council vote will be carried unanimously. We want to see whether these two factors provide useful information about voting outcomes.
 
-
 Our research question is: **Can meeting type and year predict whether a Vancouver City Council vote will be carried unanimously?**
-
 
 We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal. As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we will use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
 
 The outcome we want to predict is whether a council vote was carried unanimously. We define this as a binary variable: votes recorded as "Carried Unanimously" are assigned a value of 1, while votes recorded as "Carried" or "Lost" are assigned a value of 0. This allows us to treat the problem as a binary classification task.
 
 The dataset contains the information needed to investigate this question, including the meeting type, voting date, and recorded decision for each vote.
-
 
 ## Methods
 
@@ -39,6 +33,7 @@ Following the team's data-cleaning approach, we converted date columns to approp
 These steps help reduce duplicate records while preserving potentially unusual observations rather than automatically excluding them from the analysis.
 
 #### Downloading and Loading the Raw Data
+
 ```{python}
 from pathlib import Path
 import requests
@@ -73,6 +68,7 @@ print("Raw data shape:", df_raw.shape)
 ```
 
 #### Converting Dates and Handling Duplicates
+
 ```{python}
 # Prepare a copy of the raw data for cleaning.
 df_work = df_raw.copy()
@@ -127,6 +123,7 @@ print("Shape after duplicate handling:", df_work.shape)
 ```
 
 #### Flagging Potential Data Quality Issues
+
 ```{python}
 # Convert UTC timestamps to Vancouver local dates.
 local_dates = (
@@ -199,6 +196,7 @@ print(
 ```
 
 #### Validating and Saving the Cleaned Data
+
 ```{python}
 
 # Verify that voting record identifiers remain unique.
@@ -263,6 +261,7 @@ print("Records flagged for review:", len(review_records))
 ```
 
 #### Constructing the Vote-Level Dataset
+
 ```{python}
 import pandas as pd
 
@@ -357,13 +356,11 @@ print("Vote-level dataset shape:", df_votes.shape)
 print("One row per vote:", df_votes["vote_number"].is_unique)
 ```
 
-
 ### Training and Test Split
 
 We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions will use only the training set, leaving the test set aside for final evaluation.
 
 This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.
-
 
 ```{python}
 from sklearn.model_selection import train_test_split
@@ -388,7 +385,6 @@ assert len(shared_votes) == 0, "Train/test overlap detected."
 print("Shared council votes:", len(shared_votes))
 ```
 
-
 ### Exploratory Data Analysis
 
 We first examine the distribution of unanimous and non-unanimous decisions in the training data to understand the balance of our target variable.
@@ -406,7 +402,6 @@ print(
 )
 ```
 
-
 ```{python}
 # Summarize unanimity by meeting type using training data only.
 meeting_summary = (
@@ -423,7 +418,6 @@ print(meeting_summary.round(3))
 ```
 
 In the training data, 70.9% of council votes were carried unanimously, indicating an imbalance between the two outcome classes. Unanimity rates also varied across meeting types. For example, Regular Council meetings had a higher unanimity rate (76.8%) than Policy & Strategic Priorities meetings (62.8%) and Special Council meetings (57.6%). Some meeting types had very few observations, so their rates should be interpreted cautiously. These descriptive differences suggest that meeting type may provide useful predictive information.
-
 
 ```{python}
 # Summarize unanimity by year using training data only.
