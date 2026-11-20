@@ -10,13 +10,11 @@ This project investigates whether meeting type and year can predict whether a Va
 
 ## Introduction
 
-Vancouver City Council makes decisions on local issues through council votes. Some decisions receive unanimous support, while others involve disagreement among council members. Looking at these voting patterns can help us understand how council decisions vary across different meeting types and over time.
-
-In this project, we explore whether meeting type and year can help predict when a council vote will be carried unanimously. We want to see whether these two factors provide useful information about voting outcomes.
+Vancouver City Council shapes local housing, budgeting, and transit policy through recorded council votes. Understanding when decisions pass unanimously versus when council members divide matters for civic transparency, as municipal councils often reach broad consensus on routine items while splitting on contested policy debates (Lucas, 2023). Examining how unanimity varies across meeting forums and over time helps clarify whether structural context alone signals which council decisions are likely to draw dissent.
 
 Our research question is: **Can meeting type and year predict whether a Vancouver City Council vote will be carried unanimously?**
 
-We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal. As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we will use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
+We use the [Council Voting Records dataset](https://opendata.vancouver.ca/explore/dataset/council-voting-records/) from the City of Vancouver Open Data Portal (City of Vancouver, 2026). As of our November 18, 2026 analysis, the cleaned dataset contained 83,805 records from April 2016 to October 2026, representing 7,665 distinct council votes. Each row records an individual council member's vote on a particular decision. For our analysis, we use one observation per council vote, with meeting type and year (extracted from the voting date) as predictors and the recorded decision as the basis for our target variable.
 
 The outcome we want to predict is whether a council vote was carried unanimously. We define this as a binary variable: votes recorded as "Carried Unanimously" are assigned a value of 1, while votes recorded as "Carried" or "Lost" are assigned a value of 0. This allows us to treat the problem as a binary classification task.
 
@@ -315,7 +313,7 @@ print(
 
 Because the original dataset contains individual councillors' voting records, we grouped the cleaned records by council vote to create one observation per decision. We retained the meeting type, voting date, and recorded decision, and extracted the calendar year from the voting date. We then defined a binary outcome: 1 for votes recorded as "Carried Unanimously" and 0 for votes recorded as "Carried" or "Lost".
 
-We also retained a flag identifying potentially inconsistent decisions. These observations remain in the dataset for now rather than being automatically excluded.
+We also retained a flag identifying potentially inconsistent decisions. These observations were retained in the dataset rather than automatically excluded.
 
 ```{python}
 # Check that meeting type and date are consistent within each vote.
@@ -369,7 +367,7 @@ print("One row per vote:", df_votes["vote_number"].is_unique)
 
 ### Training and Test Split
 
-We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions will use only the training set, leaving the test set aside for final evaluation.
+We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions used only the training set, leaving the test set aside for final evaluation.
 
 This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.
 
@@ -478,9 +476,9 @@ As shown in Figure 1, unanimity rose sharply above the 70.9% training mean in 20
 
 ### Model Selection, Metric Justification, and Classification Analysis
 
-To predict whether a council vote is carried unanimously, we compare a majority-class dummy classifier baseline against logistic regression with default and balanced class weights. Logistic regression fits our binary outcome (unanimous versus non-unanimous) and estimates interpretable probabilities for each category, building on supervised learning approaches applied to legislative roll-call data (Bonica, 2018). Because unanimity in the training data varies non-linearly across years (62.5%–64.0% in 2019–2022 versus 85.4% in 2024) and meeting types (76.8% in Regular Council versus 57.6% in Special Council), we one-hot encode both predictors inside a pipeline so preprocessing stays within each five-fold cross-validation split.
+To predict whether a council vote was carried unanimously, we compared a majority-class dummy classifier baseline against logistic regression with default and balanced class weights. Logistic regression fits our binary outcome (unanimous versus non-unanimous) and estimates interpretable probabilities for each category, building on supervised learning approaches applied to legislative roll-call data (Bonica, 2018). Because unanimity in the training data varied non-linearly across years (62.5%–64.0% in 2019–2022 versus 85.4% in 2024) and meeting types (76.8% in Regular Council versus 57.6% in Special Council), we one-hot encoded both predictors inside a pipeline so preprocessing stayed within each five-fold cross-validation split.
 
-We evaluate models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes are unanimous, a dummy classifier achieves roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.
+We evaluated models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes were unanimous, a dummy classifier achieved roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.
 
 ```{python}
 # Separate features and target for training and test sets
@@ -600,11 +598,11 @@ top_coefs
 
 *Table 3. Largest positive and negative log-odds coefficients from the balanced logistic regression model.*
 
-Table 3 highlights the strongest predictors of unanimity in the fitted model. Votes in 2024 (coefficient 0.837), 2023 (0.467), and 2025 (0.379), as well as Auditor General Committee (1.839) and Courts of Revision (1.163) meetings, were positively associated with unanimous approval. Conversely, Special Council (-0.894), Policy & Strategic Priorities (-0.726), and City Finance & Services (-0.653) meetings, along with votes in 2020 (-0.449) and 2021 (-0.472), had negative coefficients, indicating lower odds of unanimity.
+Table 3 highlights the strongest predictors of unanimity in the fitted model. Votes in 2024 (coefficient 0.837), 2023 (0.467), and 2025 (0.379), as well as Auditor General Committee (1.839) and Courts of Revision (1.163) meetings, were positively associated with unanimous approval. Conversely, Special Council (-0.894), Policy and Strategic Priorities (-0.726), and City Finance and Services (-0.653) meetings, along with votes in 2020 (-0.449) and 2021 (-0.472), had negative coefficients, indicating lower odds of unanimity.
 
 ## Discussion
 
-Meeting type and calendar year provide modest predictive signal for whether a Vancouver City Council vote is carried unanimously. On the held-out test set, balanced logistic regression achieved a ROC-AUC of 0.650 and a balanced accuracy of 0.601, outperforming the dummy baseline (0.500 on both metrics). While overall accuracy dropped from 0.709 to 0.573, the balanced model identified 297 non-unanimous votes instead of predicting unanimous approval for every decision.
+Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601—well above the 0.500 dummy baseline—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw accuracy from 0.709 to 0.573.
 
 Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates. By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients. This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas & Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 likely reflects shifts in council composition after the 2022 municipal election.
 
