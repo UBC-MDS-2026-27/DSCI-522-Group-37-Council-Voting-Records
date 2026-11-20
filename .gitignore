@@ -11,13 +11,12 @@ __pycache__/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
-# R files
+# R temporary files
 .Rhistory
 .RData
 
 # Quarto generated files
 *_cache/
-*_files/
 
 # VS Code settings
 .vscode/
