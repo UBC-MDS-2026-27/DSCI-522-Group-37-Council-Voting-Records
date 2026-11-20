@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using the City of Vancouver's publicly available Council Voting Records, we examine voting patterns and prepare a binary classification dataset for evaluating unanimous approval.
+This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using the City of Vancouver's publicly available Council Voting Records, we examine voting patterns and compare classification models for predicting unanimous approval.
 
 **Research question:** Can meeting type and year predict whether a Vancouver City Council vote will be carried unanimously?
 
@@ -84,7 +84,7 @@ Open `analysis/council-voting-analysis.html` in a web browser.
 
 The repository includes `pyproject.toml`, `uv.lock`, and `.python-version` so collaborators can recreate the Python environment with `uv sync`. The local `.venv/` directory should not be committed.
 
-## Analysis and Current Findings
+## Analysis and Findings
 
 The analysis is documented in `analysis/council-voting-analysis.qmd`. The Quarto report creates a vote-level dataset, defines the binary target `is_unanimous`, and splits the votes into 80% training and 20% test data using a stratified random split with `random_state=123`. The split is performed at the council-vote level so individual councillor records for the same decision do not appear in both sets.
 
@@ -96,9 +96,37 @@ Exploratory analysis of the **training data** reports:
 
 These are descriptive observations from the training set, not evidence that meeting type or year causes changes in voting outcomes. Some meeting types have small sample sizes, and the 2026 data does not cover a full year.
 
-**Current analysis status:** The Quarto source currently documents data preparation, splitting, and exploratory analysis. It does not yet report completed baseline-versus-classifier evaluation metrics or final predictive conclusions. The report's Summary also still contains an editorial placeholder that must be resolved before final submission.
+### Modelling and Evaluation
 
-A random historical train/test split would evaluate generalization to held-out historical votes, not necessarily the ability to forecast future council decisions.
+The completed modelling work is available in Chloe's [analysis PR #7](https://github.com/UBC-MDS-2026-27/DSCI-522-Group-37-Council-Voting-Records/pull/7), which is pending merge into `main`.
+
+The team compared a majority-class `DummyClassifier`, standard logistic regression, and class-weighted logistic regression. Both `meeting_type` and `year` were one-hot encoded within the modelling pipeline. Models were compared using five-fold cross-validation on the training data, with ROC-AUC and balanced accuracy prioritized because approximately 71% of training votes were unanimous.
+
+| Model | CV accuracy | CV balanced accuracy | CV ROC-AUC |
+| --- | ---: | ---: | ---: |
+| Majority-class dummy | 0.709 | 0.500 | 0.500 |
+| Logistic regression | See Table 1 in the report | 0.500 | Approximately 0.636 |
+| Balanced logistic regression | 0.579 | 0.598 | 0.637 |
+
+The balanced logistic regression model was selected for final evaluation. On the **held-out test set**, it achieved:
+
+| Test metric | Balanced logistic regression |
+| --- | ---: |
+| Accuracy | 0.573 |
+| Balanced accuracy | 0.601 |
+| ROC-AUC | 0.650 |
+
+The report's test-set confusion matrix shows 582 correctly classified unanimous votes, 297 correctly classified non-unanimous votes, 505 unanimous votes classified as non-unanimous, and 149 non-unanimous votes classified as unanimous.
+
+**Important evaluation distinction:** The dummy baseline values shown above come from training-set cross-validation, while the selected model's final values come from the held-out test set. They are not a like-for-like test-set comparison. The cross-validation results provide the appropriate direct model comparison; the test results describe final performance of the selected model.
+
+### Interpretation and Limitations
+
+Meeting type and year show **modest predictive signal**, but they do not reliably determine whether a vote will be unanimous. The fitted model associates Regular Council and certain administrative meeting types, along with 2023–2024, with higher unanimity; Special Council and Policy and Strategic Priorities meetings show lower unanimity.
+
+The analysis uses only meeting type and year, not the content or subject of motions. Its random split evaluates held-out historical decisions rather than future-year forecasting. The dataset also retains flagged anomalous records, some meeting types have limited observations, and 2026 is incomplete. The findings are best treated as exploratory rather than as a basis for automated decisions.
+
+See the [Quarto report in PR #7](https://github.com/UBC-MDS-2026-27/DSCI-522-Group-37-Council-Voting-Records/blob/analysis-2/analysis/council-voting-analysis.qmd) for the full methodology, visualizations, coefficient analysis, and discussion.
 
 ## Project Structure
 
