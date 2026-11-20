@@ -467,6 +467,56 @@ plt.show()
 
 ### **Model Selection, Metric Justification & Classification Analysis**
 
+To predict whether a council vote is carried unanimously, we compare a majority-class dummy classifier baseline against logistic regression with default and balanced class weights. Logistic regression fits our binary outcome (unanimous versus non-unanimous) and estimates interpretable probabilities for each category. Because unanimity in the training data varies non-linearly across years (62.5%–64.0% in 2019–2022 versus 85.4% in 2024) and meeting types (76.8% in Regular Council versus 57.6% in Special Council), we one-hot encode both predictors inside a pipeline so preprocessing stays within each 5-fold cross-validation split.
+
+We evaluate models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes are unanimous, a dummy classifier achieves roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.
+
+```{python}
+from sklearn.compose import make_column_transformer
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OneHotEncoder
+
+# Separate features and target for training and test sets
+features = ["meeting_type", "year"]
+target = "is_unanimous"
+
+X_train, y_train = train_votes[features], train_votes[target]
+X_test, y_test = test_votes[features], test_votes[target]
+
+# One-hot encode both categorical predictors
+preprocessor = make_column_transformer(
+    (OneHotEncoder(handle_unknown="ignore"), features)
+)
+
+# Define models to compare with 5-fold cross-validation
+models = {
+    "Dummy (Most Frequent)": DummyClassifier(strategy="most_frequent"),
+    "Logistic Regression": make_pipeline(
+        preprocessor, LogisticRegression(max_iter=1000, random_state=123)
+    ),
+    "Logistic Regression (Balanced)": make_pipeline(
+        preprocessor, LogisticRegression(max_iter=1000, class_weight="balanced", random_state=123)
+    ),
+}
+
+scoring = ["accuracy", "balanced_accuracy", "roc_auc"]
+cv_rows = []
+
+for name, model in models.items():
+    scores = cross_validate(model, X_train, y_train, cv=5, scoring=scoring)
+    cv_rows.append({
+        "Model": name,
+        "CV Accuracy": scores["test_accuracy"].mean(),
+        "CV Balanced Accuracy": scores["test_balanced_accuracy"].mean(),
+        "CV ROC-AUC": scores["test_roc_auc"].mean(),
+    })
+
+cv_results = pd.DataFrame(cv_rows).round(3)
+```
+
 ## **Results**
 
 ### Cross-Validation & Test Performance Summary
