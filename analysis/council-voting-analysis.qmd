@@ -26,7 +26,7 @@ The dataset contains the information needed to investigate this question, includ
 
 ### Data Collection and Preparation
 
-We obtained the Council Voting Records dataset from the City of Vancouver Open Data Portal through its public API and saved the original CSV file in `data/raw/`.
+We obtained the Council Voting Records dataset from the City of Vancouver Open Data Portal through its public Application Programming Interface (API) and saved the original comma-separated values (CSV) file in `data/raw/`.
 
 Following the team's data-cleaning approach, we converted date columns to appropriate datetime formats, checked record identifiers, and removed redundant councillor-vote records when their voting statuses agreed. We retained conflicting records and flagged potential date inconsistencies, unusual voting decisions, and votes with fewer than 11 recorded councillors for further review. We then validated the cleaned data and saved it in Parquet format under `data/processed/`, along with a separate CSV containing flagged records.
 
@@ -36,7 +36,22 @@ These steps help reduce duplicate records while preserving potentially unusual o
 
 ```{python}
 from pathlib import Path
+import matplotlib.pyplot as plt
+import pandas as pd
 import requests
+from sklearn.compose import make_column_transformer
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+    accuracy_score,
+    balanced_accuracy_score,
+    roc_auc_score,
+)
+from sklearn.model_selection import cross_validate, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 # Download the original council voting records from Vancouver's Open Data API.
 url = (
@@ -56,8 +71,6 @@ print(f"Raw data downloaded to {raw_path}")
 ```
 
 ```{python}
-import pandas as pd
-
 # Load the original council voting records for cleaning.
 df_raw = pd.read_csv(
     "../data/raw/council_voting_records.csv",
@@ -263,8 +276,6 @@ print("Records flagged for review:", len(review_records))
 #### Constructing the Vote-Level Dataset
 
 ```{python}
-import pandas as pd
-
 df_clean = pd.read_parquet(
     "../data/processed/council_voting_clean.parquet"
 )
@@ -363,8 +374,6 @@ We split the vote-level dataset into 80% training data and 20% test data. We use
 This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.
 
 ```{python}
-from sklearn.model_selection import train_test_split
-
 # Split at the council-vote level, not the individual-councillor level.
 train_votes, test_votes = train_test_split(
     df_votes,
@@ -441,8 +450,6 @@ Unanimity rates also varied across years in the training data. Between 2019 and 
 To visualize these training-set patterns before modeling, Figure 1 plots unanimity rates across calendar years and across the most frequent meeting types (City of Vancouver, 2026).
 
 ```{python}
-import matplotlib.pyplot as plt
-
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 
 # Left plot: unanimity rate by year (using year_summary from EDA)
@@ -476,20 +483,6 @@ To predict whether a council vote is carried unanimously, we compare a majority-
 We evaluate models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes are unanimous, a dummy classifier achieves roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.
 
 ```{python}
-from sklearn.compose import make_column_transformer
-from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    ConfusionMatrixDisplay,
-    RocCurveDisplay,
-    accuracy_score,
-    balanced_accuracy_score,
-    roc_auc_score,
-)
-from sklearn.model_selection import cross_validate
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import OneHotEncoder
-
 # Separate features and target for training and test sets
 features = ["meeting_type", "year"]
 target = "is_unanimous"
