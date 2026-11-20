@@ -448,25 +448,29 @@ Unanimity rates also varied across years in the training data. Between 2019 and 
 To visualize these training-set patterns before modeling, Figure 1 plots unanimity rates across calendar years and across the most frequent meeting types (City of Vancouver, 2026).
 
 ```{python}
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+#| out-width: 100%
+fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.8), constrained_layout=True)
 
 # Left plot: unanimity rate by year (using year_summary from EDA)
+overall_rate = train_votes["is_unanimous"].mean() * 100
 axes[0].plot(year_summary.index, year_summary["unanimous_rate"] * 100, marker="o")
-axes[0].axhline(train_votes["is_unanimous"].mean() * 100, linestyle="--", color="gray")
-axes[0].set_title("Unanimity Rate by Year")
-axes[0].set_xlabel("Calendar Year")
-axes[0].set_ylabel("Unanimous Votes (%)")
+axes[0].axhline(
+    overall_rate, linestyle="--", color="gray", label=f"Mean ({overall_rate:.1f}%)"
+)
+axes[0].set_title("Unanimity Rate by Year", fontsize=11)
+axes[0].set_xlabel("Calendar Year", fontsize=10)
+axes[0].set_ylabel("Unanimous Votes (%)", fontsize=10)
 axes[0].set_ylim(0, 100)
+axes[0].legend(frameon=False, fontsize=9)
 
 # Right plot: unanimity rate by meeting type (n >= 30)
 top_meetings = meeting_summary[meeting_summary["number_of_votes"] >= 30].sort_values("unanimous_rate")
 axes[1].barh(top_meetings.index, top_meetings["unanimous_rate"] * 100)
-axes[1].set_title("Unanimity Rate by Meeting Type (n >= 30)")
-axes[1].set_xlabel("Unanimous Votes (%)")
-axes[1].set_ylabel("Meeting Type")
+axes[1].set_title("Unanimity Rate by Meeting Type (n >= 30)", fontsize=11)
+axes[1].set_xlabel("Unanimous Votes (%)", fontsize=10)
+axes[1].set_ylabel("Meeting Type", fontsize=10)
 axes[1].set_xlim(0, 100)
 
-plt.tight_layout()
 plt.show()
 ```
 
@@ -553,21 +557,21 @@ test_summary
 ### Model Diagnostic Plots
 
 ```{python}
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+#| out-width: 100%
+fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.8), constrained_layout=True)
 
 RocCurveDisplay.from_estimator(best_model, X_test, y_test, ax=axes[0])
 axes[0].plot([0, 1], [0, 1], linestyle="--", color="gray", label="Random (AUC = 0.50)")
-axes[0].set_title("ROC Curve (Test Set)")
-axes[0].legend()
+axes[0].set_title("ROC Curve (Test Set)", fontsize=11)
+axes[0].legend(fontsize=9)
 
 ConfusionMatrixDisplay.from_estimator(
     best_model, X_test, y_test,
     display_labels=["Not Unanimous", "Unanimous"],
     ax=axes[1]
 )
-axes[1].set_title("Confusion Matrix (Test Set)")
+axes[1].set_title("Confusion Matrix (Test Set)", fontsize=11)
 
-plt.tight_layout()
 plt.show()
 ```
 
@@ -602,15 +606,15 @@ Table 3 highlights the strongest predictors of unanimity in the fitted model. Vo
 
 ## Discussion
 
-Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601—well above the 0.500 dummy baseline—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw accuracy from 0.709 to 0.573.
+Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601 (Table 2; Figure 2)—well above the 0.500 dummy baseline (Table 1)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw accuracy from 0.709 to 0.573.
 
-Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates. By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients. This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas & Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 likely reflects shifts in council composition after the 2022 municipal election.
+Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates (Figure 1; Table 3). By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients (Table 3). This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas & Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 (Figure 1; Table 3) likely reflects shifts in council composition after the 2022 municipal election.
 
 These results match our expectations. Because meeting type and year capture institutional context rather than the substance of each motion, we anticipated moderate class separation (0.650 ROC-AUC) rather than high predictive accuracy.
 
 Key limitations include relying on only two predictors without motion topic or sponsor data, using a random 80/20 split that evaluates historical interpolation rather than future forecasting (with 2026 covering only part of the year), and retaining flagged anomalous or low-coverage records that may add label noise. Additionally, one-hot encoding without interaction terms assumes meeting type and year act additively.
 
-For civic researchers and transparency advocates, this baseline quantifies how unanimity varies across council forums and years. However, its modest accuracy means metadata-only models should inform exploratory analysis rather than any automated decision-making.
+For civic researchers and transparency advocates, this baseline quantifies how unanimity varies across council forums and years. However, the misclassifications shown in the confusion matrix (Figure 2) underscore that metadata-only models should inform exploratory analysis rather than any automated decision-making.
 
 Future work could incorporate motion titles using natural language processing, test temporal generalization across council terms, or model individual councillor voting histories and ideological alignment to study coalition and dissent patterns (Bonica, 2018; Lucas & Armstrong, 2021).
 
