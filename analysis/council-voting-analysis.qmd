@@ -448,28 +448,44 @@ Unanimity rates also varied across years in the training data. Between 2019 and 
 To visualize these training-set patterns before modeling, Figure 1 plots unanimity rates across calendar years and across the most frequent meeting types (City of Vancouver, 2026).
 
 ```{python}
-#| out-width: 100%
-fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.8), constrained_layout=True)
+fig, axes = plt.subplots(
+    1, 2, figsize=(6.8, 3.5), gridspec_kw={"width_ratios": [1, 1.15]}, constrained_layout=True
+)
 
 # Left plot: unanimity rate by year (using year_summary from EDA)
 overall_rate = train_votes["is_unanimous"].mean() * 100
-axes[0].plot(year_summary.index, year_summary["unanimous_rate"] * 100, marker="o")
-axes[0].axhline(
-    overall_rate, linestyle="--", color="gray", label=f"Mean ({overall_rate:.1f}%)"
+axes[0].plot(
+    year_summary.index, year_summary["unanimous_rate"] * 100,
+    marker="o", markersize=4.5, linewidth=1.8, color="#2b6cb0"
 )
-axes[0].set_title("Unanimity Rate by Year", fontsize=11)
-axes[0].set_xlabel("Calendar Year", fontsize=10)
-axes[0].set_ylabel("Unanimous Votes (%)", fontsize=10)
+axes[0].axhline(
+    overall_rate, linestyle="--", linewidth=1.2, color="#64748b",
+    label=f"Training Mean ({overall_rate:.1f}%)"
+)
+axes[0].set_title("By Calendar Year", fontsize=10.5)
+axes[0].set_xlabel("Calendar Year", fontsize=9.5)
+axes[0].set_ylabel("Unanimous Votes (%)", fontsize=9.5)
+axes[0].set_xticks([2016, 2018, 2020, 2022, 2024, 2026])
 axes[0].set_ylim(0, 100)
-axes[0].legend(frameon=False, fontsize=9)
+axes[0].tick_params(labelsize=8.5)
+axes[0].grid(axis="y", linestyle=":", alpha=0.35)
+axes[0].spines["top"].set_visible(False)
+axes[0].spines["right"].set_visible(False)
+axes[0].legend(frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.24))
 
 # Right plot: unanimity rate by meeting type (n >= 30)
 top_meetings = meeting_summary[meeting_summary["number_of_votes"] >= 30].sort_values("unanimous_rate")
-axes[1].barh(top_meetings.index, top_meetings["unanimous_rate"] * 100)
-axes[1].set_title("Unanimity Rate by Meeting Type (n >= 30)", fontsize=11)
-axes[1].set_xlabel("Unanimous Votes (%)", fontsize=10)
-axes[1].set_ylabel("Meeting Type", fontsize=10)
-axes[1].set_xlim(0, 100)
+bars = axes[1].barh(top_meetings.index, top_meetings["unanimous_rate"] * 100, color="#2b6cb0")
+for bar in bars:
+    val = bar.get_width()
+    axes[1].text(val + 1.5, bar.get_y() + bar.get_height() / 2, f"{val:.1f}%", va="center", fontsize=8)
+axes[1].set_title("By Meeting Type (n ≥ 30)", fontsize=10.5)
+axes[1].set_xlabel("Unanimous Votes (%)", fontsize=9.5)
+axes[1].set_xlim(0, 105)
+axes[1].tick_params(labelsize=8.5)
+axes[1].grid(axis="x", linestyle=":", alpha=0.35)
+axes[1].spines["top"].set_visible(False)
+axes[1].spines["right"].set_visible(False)
 
 plt.show()
 ```
@@ -557,20 +573,35 @@ test_summary
 ### Model Diagnostic Plots
 
 ```{python}
-#| out-width: 100%
-fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.8), constrained_layout=True)
+fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.5), constrained_layout=True)
 
-RocCurveDisplay.from_estimator(best_model, X_test, y_test, ax=axes[0])
-axes[0].plot([0, 1], [0, 1], linestyle="--", color="gray", label="Random (AUC = 0.50)")
-axes[0].set_title("ROC Curve (Test Set)", fontsize=11)
-axes[0].legend(fontsize=9)
+roc_disp = RocCurveDisplay.from_estimator(
+    best_model, X_test, y_test,
+    name="Balanced Logistic Reg.",
+    ax=axes[0]
+)
+roc_disp.line_.set_color("#2b6cb0")
+axes[0].plot([0, 1], [0, 1], linestyle="--", linewidth=1.2, color="#64748b", label="Random (AUC = 0.50)")
+axes[0].set_title("ROC Curve (Test Set)", fontsize=10.5)
+axes[0].set_xlabel("False Positive Rate", fontsize=9.5)
+axes[0].set_ylabel("True Positive Rate", fontsize=9.5)
+axes[0].tick_params(labelsize=8.5)
+axes[0].grid(linestyle=":", alpha=0.35)
+axes[0].spines["top"].set_visible(False)
+axes[0].spines["right"].set_visible(False)
+axes[0].legend(frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.24))
 
 ConfusionMatrixDisplay.from_estimator(
     best_model, X_test, y_test,
     display_labels=["Not Unanimous", "Unanimous"],
+    cmap="Blues",
+    colorbar=False,
     ax=axes[1]
 )
-axes[1].set_title("Confusion Matrix (Test Set)", fontsize=11)
+axes[1].set_title("Confusion Matrix (Test Set)", fontsize=10.5)
+axes[1].set_xlabel("Predicted Outcome", fontsize=9.5)
+axes[1].set_ylabel("Actual Outcome", fontsize=9.5)
+axes[1].tick_params(labelsize=8.5)
 
 plt.show()
 ```
