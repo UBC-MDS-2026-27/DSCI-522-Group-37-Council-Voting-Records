@@ -439,30 +439,31 @@ Unanimity rates also varied across years in the training data. Between 2019 and 
 ### **Training Data Visualization**
 
 ```{python}
-#| fig-cap: "Figure 1. Unanimity rate by calendar year (left) and by meeting type for meeting types with at least 30 votes (right) in the training set."
 import matplotlib.pyplot as plt
 
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 
 # Left plot: unanimity rate by year (using year_summary from EDA)
-axes[0].plot(year_summary.index, year_summary["___"] * 100, marker="o")
+axes[0].plot(year_summary.index, year_summary["unanimous_rate"] * 100, marker="o")
 axes[0].axhline(train_votes["is_unanimous"].mean() * 100, linestyle="--", color="gray")
 axes[0].set_title("Unanimity Rate by Year")
-axes[0].set_xlabel("___")
+axes[0].set_xlabel("Calendar Year")
 axes[0].set_ylabel("Unanimous Votes (%)")
 axes[0].set_ylim(0, 100)
 
 # Right plot: unanimity rate by meeting type (n >= 30)
-top_meetings = meeting_summary[meeting_summary["number_of_votes"] >= ___].sort_values("unanimous_rate")
-axes[1].barh(top_meetings.index, top_meetings["___"] * 100)
+top_meetings = meeting_summary[meeting_summary["number_of_votes"] >= 30].sort_values("unanimous_rate")
+axes[1].barh(top_meetings.index, top_meetings["unanimous_rate"] * 100)
 axes[1].set_title("Unanimity Rate by Meeting Type (n >= 30)")
 axes[1].set_xlabel("Unanimous Votes (%)")
-axes[1].set_ylabel("___")
+axes[1].set_ylabel("Meeting Type")
 axes[1].set_xlim(0, 100)
 
 plt.tight_layout()
 plt.show()
 ```
+
+*Figure 1. Unanimity rate by calendar year (left) and by meeting type for meeting types with at least 30 votes (right) in the training set.*
 
 ### **Model Selection, Metric Justification & Classification Analysis**
 
