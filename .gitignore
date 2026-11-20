@@ -1,16 +1,22 @@
-#macOS system files
+# macOS system files
 .DS_Store
 
-#Python virtual environments
+# Python virtual environments
 .venv/
 
-#R temporary files
+# Python cache files
+__pycache__/
+*.pyc
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# R temporary files
 .Rhistory
 .RData
 
-#Quarto generated files
+# Quarto generated files
 *_cache/
-*_files/
 
-#Editor settings
+# VS Code settings
 .vscode/
