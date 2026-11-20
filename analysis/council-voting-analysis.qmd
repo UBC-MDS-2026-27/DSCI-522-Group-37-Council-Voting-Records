@@ -6,7 +6,7 @@ jupyter: python3
 
 ## Summary
 
-This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information and evaluate our model against a simple majority-class baseline classifier. On the held-out test set, a balanced logistic regression model achieved an Area Under the Receiver Operating Characteristic Curve (ROC-AUC) of 0.650 and a balanced accuracy of 0.601, outperforming the majority-class baseline (0.500 on both metrics) despite lower overall accuracy (0.573 versus 0.709). These findings show that council meeting forum and year carry modest predictive signal, though relying solely on institutional metadata without motion text limits predictive performance and reflects historical patterns rather than future forecasting.
+This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information and evaluate our model against a simple majority-class baseline classifier. On the held-out test set, a balanced logistic regression model achieved an Area Under the Receiver Operating Characteristic Curve (ROC-AUC) of 0.650 and a balanced accuracy of 0.601, outperforming the majority-class dummy benchmark on the same test set (0.500 on both metrics) despite lower overall accuracy (0.573 versus 0.709). These findings show that council meeting forum and year carry modest predictive signal, though relying solely on institutional metadata without motion text limits predictive performance and reflects historical patterns rather than future forecasting.
 
 ## Introduction
 
@@ -552,23 +552,36 @@ cv_results
 In five-fold cross-validation (Table 1), the majority-class dummy baseline achieved an accuracy of 0.709, a balanced accuracy of 0.500, and a ROC-AUC of 0.500. Both logistic regression models improved ROC-AUC to 0.636–0.637, showing that meeting type and year contain predictive signal. However, the unweighted logistic regression model achieved a balanced accuracy of only 0.500 because it rarely predicted the minority non-unanimous class. Using balanced class weights increased cross-validation balanced accuracy to 0.598 (with an accuracy of 0.579 and ROC-AUC of 0.637), so we selected the balanced logistic regression model for final evaluation.
 
 ```{python}
-# Fit the selected model on the full training set and evaluate once on X_test
+# Fit the selected model and dummy benchmark on the full training set, then evaluate once on X_test
+dummy_model = models["Dummy (Most Frequent)"]
+dummy_model.fit(X_train, y_train)
+dummy_pred = dummy_model.predict(X_test)
+dummy_prob = dummy_model.predict_proba(X_test)[:, 1]
+
 best_model = models["Logistic Regression (Balanced)"]
 best_model.fit(X_train, y_train)
-
 y_pred = best_model.predict(X_test)
 y_prob = best_model.predict_proba(X_test)[:, 1]
 
-test_summary = pd.DataFrame([{
-    "Test Accuracy": accuracy_score(y_test, y_pred),
-    "Test Balanced Accuracy": balanced_accuracy_score(y_test, y_pred),
-    "Test ROC-AUC": roc_auc_score(y_test, y_prob),
-}]).round(3)
+test_summary = pd.DataFrame([
+    {
+        "Model": "Dummy (Most Frequent)",
+        "Test Accuracy": accuracy_score(y_test, dummy_pred),
+        "Test Balanced Accuracy": balanced_accuracy_score(y_test, dummy_pred),
+        "Test ROC-AUC": roc_auc_score(y_test, dummy_prob),
+    },
+    {
+        "Model": "Logistic Regression (Balanced)",
+        "Test Accuracy": accuracy_score(y_test, y_pred),
+        "Test Balanced Accuracy": balanced_accuracy_score(y_test, y_pred),
+        "Test ROC-AUC": roc_auc_score(y_test, y_prob),
+    },
+]).round(3)
 
 test_summary
 ```
 
-*Table 2. Final balanced logistic regression performance on the held-out test set.*
+*Table 2. Held-out test-set performance for the majority-class dummy benchmark and the selected balanced logistic regression model.*
 
 ### Model Diagnostic Plots
 
@@ -608,7 +621,7 @@ plt.show()
 
 *Figure 2. Receiver operating characteristic curve (left) and confusion matrix (right) for the balanced logistic regression model on the test set.*
 
-On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. Overall accuracy is lower than the dummy baseline (0.709) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.
+On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. Overall accuracy is lower than the test-set dummy benchmark (0.709, Table 2) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601 on the same test set. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.
 
 ### Feature Effects and Top Coefficients
 
@@ -637,7 +650,7 @@ Table 3 highlights the strongest predictors of unanimity in the fitted model. Vo
 
 ## Discussion
 
-Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601 (Table 2; Figure 2)—well above the 0.500 dummy baseline (Table 1)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw accuracy from 0.709 to 0.573.
+Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601—well above the 0.500 test-set dummy benchmark (Table 2; Figure 2)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw test accuracy from 0.709 to 0.573.
 
 Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates (Figure 1; Table 3). By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients (Table 3). This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas & Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 (Figure 1; Table 3) likely reflects shifts in council composition after the 2022 municipal election.
 

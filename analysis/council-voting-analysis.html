@@ -109,7 +109,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="summary" class="level2">
 <h2 class="anchored" data-anchor-id="summary">Summary</h2>
-<p>This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information and evaluate our model against a simple majority-class baseline classifier. On the held-out test set, a balanced logistic regression model achieved an Area Under the Receiver Operating Characteristic Curve (ROC-AUC) of 0.650 and a balanced accuracy of 0.601, outperforming the majority-class baseline (0.500 on both metrics) despite lower overall accuracy (0.573 versus 0.709). These findings show that council meeting forum and year carry modest predictive signal, though relying solely on institutional metadata without motion text limits predictive performance and reflects historical patterns rather than future forecasting.</p>
+<p>This project investigates whether meeting type and year can predict whether a Vancouver City Council vote will be carried unanimously. Using publicly available council voting records from the City of Vancouver, we apply a binary classification approach to examine whether these two characteristics provide useful predictive information and evaluate our model against a simple majority-class baseline classifier. On the held-out test set, a balanced logistic regression model achieved an Area Under the Receiver Operating Characteristic Curve (ROC-AUC) of 0.650 and a balanced accuracy of 0.601, outperforming the majority-class dummy benchmark on the same test set (0.500 on both metrics) despite lower overall accuracy (0.573 versus 0.709). These findings show that council meeting forum and year carry modest predictive signal, though relying solely on institutional metadata without motion text limits predictive performance and reflects historical patterns rather than future forecasting.</p>
 </section>
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
@@ -128,7 +128,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>These steps help reduce duplicate records while preserving potentially unusual observations rather than automatically excluding them from the analysis.</p>
 <section id="downloading-and-loading-the-raw-data" class="level4">
 <h4 class="anchored" data-anchor-id="downloading-and-loading-the-raw-data">Downloading and Loading the Raw Data</h4>
-<div id="46b952d0" class="cell" data-execution_count="1">
+<div id="c29001a2" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
@@ -166,7 +166,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>Raw data downloaded to ..\data\raw\council_voting_records.csv</code></pre>
 </div>
 </div>
-<div id="1c3c5261" class="cell" data-execution_count="2">
+<div id="3a412dd4" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the original council voting records for cleaning.</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df_raw <span class="op">=</span> pd.read_csv(</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"../data/raw/council_voting_records.csv"</span>,</span>
@@ -181,7 +181,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="converting-dates-and-handling-duplicates" class="level4">
 <h4 class="anchored" data-anchor-id="converting-dates-and-handling-duplicates">Converting Dates and Handling Duplicates</h4>
-<div id="59baf946" class="cell" data-execution_count="3">
+<div id="f9af727b" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare a copy of the raw data for cleaning.</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df_work <span class="op">=</span> df_raw.copy()</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -204,7 +204,7 @@ vote_start_date_time    datetime64[us, UTC]
 dtype: object</code></pre>
 </div>
 </div>
-<div id="73d0aa6a" class="cell" data-execution_count="4">
+<div id="dede1c31" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check that each voting record has a unique identifier.</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> df_work[<span class="st">"vote_detail_id"</span>].is_unique, (</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Duplicate vote_detail_id values found."</span></span>
@@ -245,7 +245,7 @@ Shape after duplicate handling: (83805, 11)</code></pre>
 </section>
 <section id="flagging-potential-data-quality-issues" class="level4">
 <h4 class="anchored" data-anchor-id="flagging-potential-data-quality-issues">Flagging Potential Data Quality Issues</h4>
-<div id="c87c92dd" class="cell" data-execution_count="5">
+<div id="0dc8fc1f" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert UTC timestamps to Vancouver local dates.</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>local_dates <span class="op">=</span> (</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    df_work[<span class="st">"vote_start_date_time"</span>]</span>
@@ -323,7 +323,7 @@ Votes with fewer than 11 members: 231</code></pre>
 </section>
 <section id="validating-and-saving-the-cleaned-data" class="level4">
 <h4 class="anchored" data-anchor-id="validating-and-saving-the-cleaned-data">Validating and Saving the Cleaned Data</h4>
-<div id="a5562132" class="cell" data-execution_count="6">
+<div id="e6cef00d" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify that voting record identifiers remain unique.</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> df_work[<span class="st">"vote_detail_id"</span>].is_unique, (</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Duplicate vote detail IDs remain."</span></span>
@@ -390,7 +390,7 @@ Records flagged for review: 2163</code></pre>
 </section>
 <section id="constructing-the-vote-level-dataset" class="level4">
 <h4 class="anchored" data-anchor-id="constructing-the-vote-level-dataset">Constructing the Vote-Level Dataset</h4>
-<div id="19b2a209" class="cell" data-execution_count="7">
+<div id="ae59b9a0" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>df_clean <span class="op">=</span> pd.read_parquet(</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"../data/processed/council_voting_clean.parquet"</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -400,7 +400,7 @@ Records flagged for review: 2163</code></pre>
 <pre><code>Cleaned dataset shape: (83805, 14)</code></pre>
 </div>
 </div>
-<div id="958244af" class="cell" data-execution_count="8">
+<div id="67972387" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check the decision categories before defining the binary target.</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Decision categories:"</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_clean[<span class="st">"decision"</span>].unique())</span>
@@ -440,7 +440,7 @@ Missing vote numbers: 0</code></pre>
 </div>
 <p>Because the original dataset contains individual councillors’ voting records, we grouped the cleaned records by council vote to create one observation per decision. We retained the meeting type, voting date, and recorded decision, and extracted the calendar year from the voting date. We then defined a binary outcome: 1 for votes recorded as “Carried Unanimously” and 0 for votes recorded as “Carried” or “Lost”.</p>
 <p>We also retained a flag identifying potentially inconsistent decisions. These observations were retained in the dataset rather than automatically excluded.</p>
-<div id="5f898544" class="cell" data-execution_count="9">
+<div id="595758ec" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check that meeting type and date are consistent within each vote.</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>consistency <span class="op">=</span> (</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    df_clean.groupby(<span class="st">"vote_number"</span>)[[<span class="st">"meeting_type"</span>, <span class="st">"vote_date"</span>]]</span>
@@ -500,7 +500,7 @@ One row per vote: True</code></pre>
 <h3 class="anchored" data-anchor-id="training-and-test-split">Training and Test Split</h3>
 <p>We split the vote-level dataset into 80% training data and 20% test data. We used a stratified random split to preserve approximately the same proportion of unanimous and non-unanimous decisions in both sets. We set a fixed random seed for reproducibility. All exploratory analysis and model-development decisions used only the training set, leaving the test set aside for final evaluation.</p>
 <p>This random split evaluates prediction on held-out votes from the historical period rather than forecasting voting outcomes in future years.</p>
-<div id="3012e12a" class="cell" data-execution_count="10">
+<div id="0e6781c8" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Split at the council-vote level, not the individual-councillor level.</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>train_votes, test_votes <span class="op">=</span> train_test_split(</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    df_votes,</span>
@@ -529,7 +529,7 @@ Shared council votes: 0</code></pre>
 <section id="exploratory-data-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h3>
 <p>We first examine the distribution of unanimous and non-unanimous decisions in the training data to understand the balance of our target variable.</p>
-<div id="824f9162" class="cell" data-execution_count="11">
+<div id="f3c30b31" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize the binary target using training data only.</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>target_counts <span class="op">=</span> train_votes[<span class="st">"is_unanimous"</span>].value_counts()</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -549,7 +549,7 @@ Name: count, dtype: int64
 Proportion unanimous: 0.709</code></pre>
 </div>
 </div>
-<div id="e173a9cd" class="cell" data-execution_count="12">
+<div id="8d491f26" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize unanimity by meeting type using training data only.</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>meeting_summary <span class="op">=</span> (</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    train_votes.groupby(<span class="st">"meeting_type"</span>, dropna<span class="op">=</span><span class="va">False</span>)[<span class="st">"is_unanimous"</span>]</span>
@@ -577,7 +577,7 @@ Courts of Revision                          15           1.000</code></pre>
 </div>
 </div>
 <p>In the training data, 70.9% of council votes were carried unanimously, indicating an imbalance between the two outcome classes. Unanimity rates also varied across meeting types. For example, Regular Council meetings had a higher unanimity rate (76.8%) than Policy &amp; Strategic Priorities meetings (62.8%) and Special Council meetings (57.6%). Some meeting types had very few observations, so their rates should be interpreted cautiously. These descriptive differences suggest that meeting type may provide useful predictive information.</p>
-<div id="d9be0dab" class="cell" data-execution_count="13">
+<div id="0264797c" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize unanimity by year using training data only.</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>year_summary <span class="op">=</span> (</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    train_votes.groupby(<span class="st">"year"</span>)[<span class="st">"is_unanimous"</span>]</span>
@@ -612,7 +612,7 @@ year
 <section id="training-data-visualization" class="level3">
 <h3 class="anchored" data-anchor-id="training-data-visualization">Training Data Visualization</h3>
 <p>To visualize these training-set patterns before modeling, Figure 1 plots unanimity rates across calendar years and across the most frequent meeting types (City of Vancouver, 2026).</p>
-<div id="34452327" class="cell" data-execution_count="14">
+<div id="302f70f7" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="fl">6.8</span>, <span class="fl">3.5</span>), gridspec_kw<span class="op">=</span>{<span class="st">"width_ratios"</span>: [<span class="dv">1</span>, <span class="fl">1.15</span>]}, constrained_layout<span class="op">=</span><span class="va">True</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -668,7 +668,7 @@ year
 <h3 class="anchored" data-anchor-id="model-selection-metric-justification-and-classification-analysis">Model Selection, Metric Justification, and Classification Analysis</h3>
 <p>To predict whether a council vote was carried unanimously, we compared a majority-class dummy classifier baseline against logistic regression with default and balanced class weights. Logistic regression fits our binary outcome (unanimous versus non-unanimous) and estimates interpretable probabilities for each category, building on supervised learning approaches applied to legislative roll-call data (Bonica, 2018). Because unanimity in the training data varied non-linearly across years (62.5%–64.0% in 2019–2022 versus 85.4% in 2024) and meeting types (76.8% in Regular Council versus 57.6% in Special Council), we one-hot encoded both predictors inside a pipeline so preprocessing stayed within each five-fold cross-validation split.</p>
 <p>We evaluated models primarily using Area Under the Receiver Operating Characteristic Curve (ROC-AUC) and balanced accuracy, alongside overall accuracy for baseline comparison. Because 70.9% of training votes were unanimous, a dummy classifier achieved roughly 70.9% accuracy while missing all non-unanimous votes. ROC-AUC evaluates class separation across all thresholds, and balanced accuracy weights both classes equally so ignoring non-unanimous votes scores 50.0%.</p>
-<div id="91f0cc91" class="cell" data-execution_count="15">
+<div id="d680b95b" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Separate features and target for training and test sets</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> [<span class="st">"meeting_type"</span>, <span class="st">"year"</span>]</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> <span class="st">"is_unanimous"</span></span>
@@ -712,7 +712,7 @@ year
 <h2 class="anchored" data-anchor-id="results">Results</h2>
 <section id="cross-validation-and-test-performance-summary" class="level3">
 <h3 class="anchored" data-anchor-id="cross-validation-and-test-performance-summary">Cross-Validation and Test Performance Summary</h3>
-<div id="c137c935" class="cell" data-execution_count="16">
+<div id="b7dbf5be" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>cv_results</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
 <div>
@@ -758,21 +758,34 @@ year
 </div>
 <p><em>Table 1. Five-fold cross-validation performance on the training set.</em></p>
 <p>In five-fold cross-validation (Table 1), the majority-class dummy baseline achieved an accuracy of 0.709, a balanced accuracy of 0.500, and a ROC-AUC of 0.500. Both logistic regression models improved ROC-AUC to 0.636–0.637, showing that meeting type and year contain predictive signal. However, the unweighted logistic regression model achieved a balanced accuracy of only 0.500 because it rarely predicted the minority non-unanimous class. Using balanced class weights increased cross-validation balanced accuracy to 0.598 (with an accuracy of 0.579 and ROC-AUC of 0.637), so we selected the balanced logistic regression model for final evaluation.</p>
-<div id="f4110bc1" class="cell" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the selected model on the full training set and evaluate once on X_test</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>best_model <span class="op">=</span> models[<span class="st">"Logistic Regression (Balanced)"</span>]</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>best_model.fit(X_train, y_train)</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> best_model.predict(X_test)</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>y_prob <span class="op">=</span> best_model.predict_proba(X_test)[:, <span class="dv">1</span>]</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>test_summary <span class="op">=</span> pd.DataFrame([{</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Test Accuracy"</span>: accuracy_score(y_test, y_pred),</span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Test Balanced Accuracy"</span>: balanced_accuracy_score(y_test, y_pred),</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Test ROC-AUC"</span>: roc_auc_score(y_test, y_prob),</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>}]).<span class="bu">round</span>(<span class="dv">3</span>)</span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>test_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="4b63336c" class="cell" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the selected model and dummy benchmark on the full training set, then evaluate once on X_test</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>dummy_model <span class="op">=</span> models[<span class="st">"Dummy (Most Frequent)"</span>]</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>dummy_model.fit(X_train, y_train)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>dummy_pred <span class="op">=</span> dummy_model.predict(X_test)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>dummy_prob <span class="op">=</span> dummy_model.predict_proba(X_test)[:, <span class="dv">1</span>]</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>best_model <span class="op">=</span> models[<span class="st">"Logistic Regression (Balanced)"</span>]</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>best_model.fit(X_train, y_train)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> best_model.predict(X_test)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>y_prob <span class="op">=</span> best_model.predict_proba(X_test)[:, <span class="dv">1</span>]</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>test_summary <span class="op">=</span> pd.DataFrame([</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Model"</span>: <span class="st">"Dummy (Most Frequent)"</span>,</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test Accuracy"</span>: accuracy_score(y_test, dummy_pred),</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test Balanced Accuracy"</span>: balanced_accuracy_score(y_test, dummy_pred),</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test ROC-AUC"</span>: roc_auc_score(y_test, dummy_prob),</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Model"</span>: <span class="st">"Logistic Regression (Balanced)"</span>,</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test Accuracy"</span>: accuracy_score(y_test, y_pred),</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test Balanced Accuracy"</span>: balanced_accuracy_score(y_test, y_pred),</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Test ROC-AUC"</span>: roc_auc_score(y_test, y_prob),</span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>]).<span class="bu">round</span>(<span class="dv">3</span>)</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>test_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="17">
 <div>
 
@@ -781,6 +794,7 @@ year
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Model</th>
 <th data-quarto-table-cell-role="th">Test Accuracy</th>
 <th data-quarto-table-cell-role="th">Test Balanced Accuracy</th>
 <th data-quarto-table-cell-role="th">Test ROC-AUC</th>
@@ -789,6 +803,14 @@ year
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
+<td>Dummy (Most Frequent)</td>
+<td>0.709</td>
+<td>0.500</td>
+<td>0.50</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>Logistic Regression (Balanced)</td>
 <td>0.573</td>
 <td>0.601</td>
 <td>0.65</td>
@@ -799,11 +821,11 @@ year
 </div>
 </div>
 </div>
-<p><em>Table 2. Final balanced logistic regression performance on the held-out test set.</em></p>
+<p><em>Table 2. Held-out test-set performance for the majority-class dummy benchmark and the selected balanced logistic regression model.</em></p>
 </section>
 <section id="model-diagnostic-plots" class="level3">
 <h3 class="anchored" data-anchor-id="model-diagnostic-plots">Model Diagnostic Plots</h3>
-<div id="81e72106" class="cell" data-execution_count="18">
+<div id="d52ee1b7" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="fl">6.8</span>, <span class="fl">3.5</span>), constrained_layout<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>roc_disp <span class="op">=</span> RocCurveDisplay.from_estimator(</span>
@@ -844,11 +866,11 @@ year
 </div>
 </div>
 <p><em>Figure 2. Receiver operating characteristic curve (left) and confusion matrix (right) for the balanced logistic regression model on the test set.</em></p>
-<p>On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. Overall accuracy is lower than the dummy baseline (0.709) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.</p>
+<p>On the held-out test set (Table 2 and Figure 2), the balanced logistic regression model achieved an accuracy of 0.573, a balanced accuracy of 0.601, and a ROC-AUC of 0.650. Overall accuracy is lower than the test-set dummy benchmark (0.709, Table 2) because balanced class weights trade majority-class accuracy for substantially higher recall on non-unanimous votes, raising balanced accuracy from 0.500 to 0.601 on the same test set. As shown in the confusion matrix (Figure 2, right), the model correctly identified 582 unanimous votes and 297 non-unanimous votes, while misclassifying 505 unanimous votes as non-unanimous and 149 non-unanimous votes as unanimous.</p>
 </section>
 <section id="feature-effects-and-top-coefficients" class="level3">
 <h3 class="anchored" data-anchor-id="feature-effects-and-top-coefficients">Feature Effects and Top Coefficients</h3>
-<div id="503d3014" class="cell" data-execution_count="19">
+<div id="b3ba30f2" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the largest positive and negative log-odds coefficients</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>ohe <span class="op">=</span> best_model.named_steps[<span class="st">"columntransformer"</span>].named_transformers_[<span class="st">"onehotencoder"</span>]</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>raw_names <span class="op">=</span> ohe.get_feature_names_out(features)</span>
@@ -940,7 +962,7 @@ year
 </section>
 <section id="discussion" class="level2">
 <h2 class="anchored" data-anchor-id="discussion">Discussion</h2>
-<p>Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601 (Table 2; Figure 2)—well above the 0.500 dummy baseline (Table 1)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw accuracy from 0.709 to 0.573.</p>
+<p>Overall, meeting type and calendar year provide modest but meaningful predictive signal for whether a Vancouver City Council vote is carried unanimously. Achieving a test ROC-AUC of 0.650 and a balanced accuracy of 0.601—well above the 0.500 test-set dummy benchmark (Table 2; Figure 2)—demonstrates that institutional metadata helps distinguish unanimous from contested votes, even though balanced weighting reduces raw test accuracy from 0.709 to 0.573.</p>
 <p>Different council forums serve distinct roles in municipal governance: Regular Council, Auditor General Committee, and Courts of Revision meetings often handle routine or administrative items, aligning with their higher unanimity rates (Figure 1; Table 3). By contrast, Special Council, Policy and Strategic Priorities, and City Finance and Services meetings center on contested policy and budget debates, yielding negative coefficients (Table 3). This pattern aligns with Canadian municipal governance research showing that local councils often exhibit broad consensus on routine matters while still dividing along ideological lines on contentious policy issues (Lucas, 2023; Lucas &amp; Armstrong, 2021). Similarly, higher unanimity in 2023–2024 compared with 2020–2021 (Figure 1; Table 3) likely reflects shifts in council composition after the 2022 municipal election.</p>
 <p>These results match our expectations. Because meeting type and year capture institutional context rather than the substance of each motion, we anticipated moderate class separation (0.650 ROC-AUC) rather than high predictive accuracy.</p>
 <p>Key limitations include relying on only two predictors without motion topic or sponsor data, using a random 80/20 split that evaluates historical interpolation rather than future forecasting (with 2026 covering only part of the year), and retaining flagged anomalous or low-coverage records that may add label noise. Additionally, one-hot encoding without interaction terms assumes meeting type and year act additively.</p>
