@@ -633,3 +633,11 @@ For civic researchers and transparency advocates, this baseline quantifies how u
 Future work could incorporate motion titles using natural language processing, test temporal generalization across council terms, or model individual councillor voting histories to study coalition and dissent patterns.
 
 ## **References**
+
+1.  City of Vancouver. (2026). *Council Voting Records* \[Dataset\]. City of Vancouver Open Data Portal. <https://opendata.vancouver.ca/explore/dataset/council-voting-records/>
+
+2.  Lucas, J., & Armstrong, D. A., II. *Policy ideology and local ideological representation in Canada*. *Canadian Journal of Political Science*. <https://doi.org/10.1017/S0008423921000652>
+
+3.  Lucas, J. *The ideological structure of municipal non-ideology*. *Urban Affairs Review*. <https://doi.org/10.1177/10780874211038321>
+
+4.  Bonica, A. *Inferring roll-call scores from campaign contributions using supervised machine learning*. *American Journal of Political Science*. <https://doi.org/10.1111/ajps.12376>
