@@ -102,10 +102,10 @@ The completed modelling work is available in Chloe's [analysis PR #7](https://gi
 
 The team compared a majority-class `DummyClassifier`, standard logistic regression, and class-weighted logistic regression. Both `meeting_type` and `year` were one-hot encoded within the modelling pipeline. Models were compared using five-fold cross-validation on the training data, with ROC-AUC and balanced accuracy prioritized because approximately 71% of training votes were unanimous.
 
-| Model | CV accuracy | CV balanced accuracy | CV ROC-AUC |
+| Model | CV Accuracy | CV Balanced Accuracy | CV ROC-AUC |
 | --- | ---: | ---: | ---: |
 | Majority-class dummy | 0.709 | 0.500 | 0.500 |
-| Logistic regression | See Table 1 in the report | 0.500 | Approximately 0.636 |
+| Logistic regression | 0.707 | 0.500 | 0.636 |
 | Balanced logistic regression | 0.579 | 0.598 | 0.637 |
 
 The balanced logistic regression model was selected for final evaluation. On the **held-out test set**, it achieved:
@@ -140,8 +140,8 @@ See the [Quarto report in PR #7](https://github.com/UBC-MDS-2026-27/DSCI-522-Gro
 - `uv.lock`: locked dependency versions
 - `.python-version`: Python version
 - `README.md`: project overview, dataset information, and reproduction instructions
-- `CONTRIBUTING.md`: contribution guidelines file (currently empty on `main`)
-- `CODE_OF_CONDUCT.md`: code of conduct file (currently empty on `main`)
+- `CONTRIBUTING.md`: guidelines for contributing to the project
+- `CODE_OF_CONDUCT.md`: community standards and expected contributor behaviour
 
 ## Contributors
 
@@ -154,4 +154,9 @@ Developed by Group 37 for DSCI 522: Data Science Workflows in the University of 
 
 ## License
 
-The repository currently contains an [MIT License](LICENSE). A separate Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0) license for the written report has been proposed but is not yet reflected in the merged license file. Refer to the current repository license and any subsequently merged license updates.
+This project uses separate licenses for software and written documentation:
+
+- **Software:** MIT License.
+- **Written report:** Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0).
+
+See [LICENSE.md](LICENSE.md) for the license terms.
