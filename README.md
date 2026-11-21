@@ -8,6 +8,12 @@ This project investigates whether meeting type and year can predict whether a Va
 
 The target is `is_unanimous`: 1 for decisions recorded as "Carried Unanimously", and 0 for decisions recorded as "Carried" or "Lost". The predictors are meeting type and the calendar year extracted from the voting date.
 
+## Published Report
+
+The complete analysis, including exploratory visualizations, model evaluation, and findings, is available online:
+
+[View the Vancouver City Council Voting Analysis Report](https://ubc-mds-2026-27.github.io/DSCI-522-Group-37-Council-Voting-Records/analysis/council-voting-analysis.html)
+
 ## Dataset and Data Source
 
 Source: [City of Vancouver Open Data Portal — Council Voting Records](https://opendata.vancouver.ca/explore/dataset/council-voting-records/).
@@ -130,7 +136,8 @@ See the [Quarto analysis report](analysis/council-voting-analysis.qmd) for the f
 
 ## Project Structure
 
-- `analysis/`: Quarto source report and rendered output
+- `index.html`: GitHub Pages landing page linking to the published report
+- `analysis/`: Quarto source (`.qmd`), rendered HTML report, and supporting files
 - `data/raw/`: original voting records
 - `data/processed/`: cleaned data and flagged records
 - `notebooks/`: exploratory notebooks
