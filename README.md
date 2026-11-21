@@ -8,6 +8,12 @@ This project investigates whether meeting type and year can predict whether a Va
 
 The target is `is_unanimous`: 1 for decisions recorded as "Carried Unanimously", and 0 for decisions recorded as "Carried" or "Lost". The predictors are meeting type and the calendar year extracted from the voting date.
 
+## Published Report
+
+The complete analysis, including exploratory visualizations, model evaluation, and findings, is available online:
+
+[View the Vancouver City Council Voting Analysis Report](https://ubc-mds-2026-27.github.io/DSCI-522-Group-37-Council-Voting-Records/analysis/council-voting-analysis.html)
+
 ## Dataset and Data Source
 
 Source: [City of Vancouver Open Data Portal — Council Voting Records](https://opendata.vancouver.ca/explore/dataset/council-voting-records/).
@@ -98,7 +104,7 @@ These are descriptive observations from the training set, not evidence that meet
 
 ### Modelling and Evaluation
 
-The completed modelling work is available in Chloe's [analysis PR #7](https://github.com/UBC-MDS-2026-27/DSCI-522-Group-37-Council-Voting-Records/pull/7), which is pending merge into `main`.
+The complete modelling methodology, results, and evaluation are documented in the [Quarto analysis report](analysis/council-voting-analysis.qmd).
 
 The team compared a majority-class `DummyClassifier`, standard logistic regression, and class-weighted logistic regression. Both `meeting_type` and `year` were one-hot encoded within the modelling pipeline. Models were compared using five-fold cross-validation on the training data, with ROC-AUC and balanced accuracy prioritized because approximately 71% of training votes were unanimous.
 
@@ -108,17 +114,17 @@ The team compared a majority-class `DummyClassifier`, standard logistic regressi
 | Logistic regression | 0.707 | 0.500 | 0.636 |
 | Balanced logistic regression | 0.579 | 0.598 | 0.637 |
 
-The balanced logistic regression model was selected for final evaluation. On the **held-out test set**, it achieved:
+The balanced logistic regression model was selected for final evaluation and compared against the majority-class dummy classifier on the same held-out test set.
 
-| Test metric | Balanced logistic regression |
-| --- | ---: |
-| Accuracy | 0.573 |
-| Balanced accuracy | 0.601 |
-| ROC-AUC | 0.650 |
+| Test metric | Majority-class dummy | Balanced logistic regression |
+| --- | ---: | ---: |
+| Accuracy | 0.709 | 0.573 |
+| Balanced accuracy | 0.500 | 0.601 |
+| ROC-AUC | 0.500 | 0.650 |
 
 The report's test-set confusion matrix shows 582 correctly classified unanimous votes, 297 correctly classified non-unanimous votes, 505 unanimous votes classified as non-unanimous, and 149 non-unanimous votes classified as unanimous.
 
-**Important evaluation distinction:** The dummy baseline values shown above come from training-set cross-validation, while the selected model's final values come from the held-out test set. They are not a like-for-like test-set comparison. The cross-validation results provide the appropriate direct model comparison; the test results describe final performance of the selected model.
+On the held-out test set, balanced logistic regression achieved higher balanced accuracy (0.601 versus 0.500) and ROC-AUC (0.650 versus 0.500) than the dummy classifier. However, the dummy classifier achieved higher overall accuracy (0.709 versus 0.573), reflecting the imbalance in unanimous and non-unanimous votes.
 
 ### Interpretation and Limitations
 
@@ -126,11 +132,12 @@ Meeting type and year show **modest predictive signal**, but they do not reliabl
 
 The analysis uses only meeting type and year, not the content or subject of motions. Its random split evaluates held-out historical decisions rather than future-year forecasting. The dataset also retains flagged anomalous records, some meeting types have limited observations, and 2026 is incomplete. The findings are best treated as exploratory rather than as a basis for automated decisions.
 
-See the [Quarto report in PR #7](https://github.com/UBC-MDS-2026-27/DSCI-522-Group-37-Council-Voting-Records/blob/analysis-2/analysis/council-voting-analysis.qmd) for the full methodology, visualizations, coefficient analysis, and discussion.
+See the [Quarto analysis report](analysis/council-voting-analysis.qmd) for the full methodology, visualizations, coefficient analysis, and discussion.
 
 ## Project Structure
 
-- `analysis/`: Quarto source report and rendered output
+- `index.html`: GitHub Pages landing page linking to the published report
+- `analysis/`: Quarto source (`.qmd`), rendered HTML report, and supporting files
 - `data/raw/`: original voting records
 - `data/processed/`: cleaned data and flagged records
 - `notebooks/`: exploratory notebooks
@@ -160,3 +167,9 @@ This project uses separate licenses for software and written documentation:
 - **Written report:** Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0).
 
 See [LICENSE.md](LICENSE.md) for the license terms.
+
+## AI Usage Disclosure
+
+ChatGPT (OpenAI) was used to assist with drafting and refining project documentation, improving clarity and grammar, providing Git and GitHub workflow guidance, and checking the README for consistency with the project's analysis and reported results.
+
+AI-generated suggestions were reviewed and verified before inclusion. The project team is responsible for the final submitted work.
