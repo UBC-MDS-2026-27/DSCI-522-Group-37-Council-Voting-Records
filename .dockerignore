@@ -1,0 +1,15 @@
+
+.git/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+.Rhistory
+.RData
+.vscode/
+data/
+analysis/
+notebooks/
+docs/
+scripts/
