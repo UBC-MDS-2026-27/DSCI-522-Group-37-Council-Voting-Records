@@ -1,6 +1,8 @@
 ---
 title: "Predicting Unanimous Approval in Vancouver City Council Votes"
-format: html
+format:
+  html:
+    embed-resources: true
 jupyter: python3
 ---
 
